@@ -57,9 +57,11 @@ students. Delete them from the Students page afterwards.
 
 ### Reaching it by name
 
-The installer allows `localhost`, the container's hostname and its IPs. To use
-another name (for example `grades.home.lan`), add it to `DJANGO_ALLOWED_HOSTS`
-in `/etc/homeschool-grades/env`, then run `systemctl restart homeschool-grades`.
+By default the app answers to any hostname or IP (`DJANGO_ALLOWED_HOSTS=*`),
+which is fine on a home network. To restrict it, list your names/IPs in
+`DJANGO_ALLOWED_HOSTS` in `/etc/homeschool-grades/env`, then run
+`systemctl restart homeschool-grades`. A "Bad Request (400)" page means the
+address you used isn't in that list.
 If you put it behind HTTPS (Nginx Proxy Manager, Caddy, Traefik...), also set
 `DJANGO_CSRF_TRUSTED_ORIGINS=https://grades.example.com` and
 `DJANGO_SECURE_COOKIES=true`.

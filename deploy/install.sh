@@ -35,11 +35,8 @@ chmod 750 "$DATA_DIR" "$BACKUP_DIR"
 if [ ! -f "$ENV_DIR/env" ]; then
   echo "==> Writing $ENV_DIR/env"
   SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(50))')
-  IPS=$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -v ':' | grep -v '^$' | paste -sd, -)
-  HOST=$(hostname)
   TZ_NAME=$(cat /etc/timezone 2>/dev/null || timedatectl show -p Timezone --value 2>/dev/null || echo America/Chicago)
   sed -e "s|__SECRET__|$SECRET|" \
-      -e "s|__HOSTS__|localhost,127.0.0.1,$HOST,$HOST.local${IPS:+,$IPS}|" \
       -e "s|__TZ__|${TZ_NAME:-America/Chicago}|" \
       "$APP_DIR/deploy/env.example" > "$ENV_DIR/env"
   chown root:"$APP_USER" "$ENV_DIR/env"
