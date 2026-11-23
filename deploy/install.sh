@@ -28,9 +28,16 @@ git -C "$APP_DIR" pull --ff-only || true
 
 echo "==> Creating the app user and folders"
 id "$APP_USER" >/dev/null 2>&1 || useradd --system --home "$DATA_DIR" --shell /usr/sbin/nologin "$APP_USER"
-mkdir -p "$DATA_DIR/static" "$ENV_DIR" "$BACKUP_DIR"
-chown -R "$APP_USER:$APP_USER" "$DATA_DIR"
+STATIC_DIR=/var/www/homeschool-grades/static
+mkdir -p "$DATA_DIR" "$STATIC_DIR" "$ENV_DIR" "$BACKUP_DIR"
+chown -R "$APP_USER:$APP_USER" "$DATA_DIR" /var/www/homeschool-grades
 chmod 750 "$DATA_DIR" "$BACKUP_DIR"
+# Nginx (www-data) must be able to read static files; the database stays private.
+chmod 755 /var/www/homeschool-grades "$STATIC_DIR"
+# Older installs kept static files inside the private data folder.
+if [ -f "$ENV_DIR/env" ]; then
+  sed -i 's|^HSG_STATIC_ROOT=.*|HSG_STATIC_ROOT=/var/www/homeschool-grades/static|' "$ENV_DIR/env"
+fi
 
 if [ ! -f "$ENV_DIR/env" ]; then
   echo "==> Writing $ENV_DIR/env"
