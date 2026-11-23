@@ -90,7 +90,11 @@ class CourseForm(forms.ModelForm):
             "credits", "final_grade_override", "on_transcript", "pass_fail",
             "completed", "description",
         ]
-        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 3}),
+            "grading_method": forms.RadioSelect,
+            "level": forms.RadioSelect,
+        }
         labels = {"pass_fail": "Pass / fail", "on_transcript": "On high school transcript",
                   "final_grade_override": "Final grade override", "name": "Course name"}
 

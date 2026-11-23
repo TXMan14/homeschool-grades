@@ -53,7 +53,7 @@ from .models import (
 
 
 def edit_object(request, form_class, instance=None, *, title, success_url, initial=None,
-                form_kwargs=None, on_save=None, cancel_url=None):
+                form_kwargs=None, on_save=None, cancel_url=None, template="grades/form.html"):
     """Generic create/update view rendering grades/form.html."""
     form_kwargs = form_kwargs or {}
     if request.method == "POST":
@@ -67,7 +67,7 @@ def edit_object(request, form_class, instance=None, *, title, success_url, initi
             return redirect(success_url(obj) if callable(success_url) else success_url)
     else:
         form = form_class(instance=instance, initial=initial, **form_kwargs)
-    return render(request, "grades/form.html", {
+    return render(request, template, {
         "form": form, "title": title, "cancel_url": cancel_url or request.GET.get("next") or "/",
     })
 
@@ -340,14 +340,16 @@ def course_create(request):
     if year:
         initial["school_year"] = year.pk
     return edit_object(request, CourseForm, title="Add course", on_save=save, initial=initial,
-                       success_url=lambda c: c.get_absolute_url())
+                       success_url=lambda c: c.get_absolute_url(),
+                       template="grades/course_form.html")
 
 
 def course_edit(request, pk):
     course = get_object_or_404(Course, pk=pk)
     return edit_object(request, CourseForm, course, title=f"Edit {course.name}",
                        success_url=course.get_absolute_url(),
-                       cancel_url=course.get_absolute_url())
+                       cancel_url=course.get_absolute_url(),
+                       template="grades/course_form.html")
 
 
 def course_delete(request, pk):

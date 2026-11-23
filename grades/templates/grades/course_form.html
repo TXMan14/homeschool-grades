@@ -1,0 +1,67 @@
+{% extends "grades/base.html" %}{% load ui %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head"><div>
+  <div class="crumbs"><a href="{{ cancel_url }}">{% icon "left" 14 %} Back</a></div>
+  <h1>{{ title }}</h1>
+</div></div>
+<form method="post" novalidate class="form-card">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+
+  <div class="card"><div class="card-head"><div><h2>Course</h2></div></div>
+    <div class="card-body"><div class="form-grid">
+      {{ form.name.as_field_group }}{{ form.subject.as_field_group }}
+      {{ form.student.as_field_group }}{{ form.school_year.as_field_group }}
+    </div></div></div>
+
+  <div class="card"><div class="card-head"><div><h2>How will you grade it?</h2><p>You can change this later.</p></div></div>
+    <div class="card-body">
+      <div class="choice-cards">
+        {% for radio in form.grading_method %}
+        <label class="choice-card">{{ radio.tag }}
+          <span class="choice-body">
+            <span class="choice-icon">{% if radio.data.value == "weighted" %}{% icon "chart" 20 %}{% elif radio.data.value == "letter" %}{% icon "edit" 20 %}{% else %}{% icon "list" 20 %}{% endif %}</span>
+            <span class="choice-title">{% if radio.data.value == "weighted" %}Scores & categories{% elif radio.data.value == "letter" %}Letter grades{% else %}Skills checklist{% endif %}</span>
+            <span class="choice-desc">{% if radio.data.value == "weighted" %}Log quiz, test and project scores. The grade is calculated from weighted categories. Best for grades 4 and up.{% elif radio.data.value == "letter" %}Give a letter grade each grading period. Quick and simple.{% else %}Mark skills as Not yet, Progressing or Mastered. Great for K–3.{% endif %}</span>
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+      {% if form.grading_method.errors %}<div class="field-error">{{ form.grading_method.errors|join:" " }}</div>{% endif %}
+    </div></div>
+
+  <div class="card"><div class="card-head"><div><h2>High school credit</h2><p>For courses that belong on the transcript.</p></div></div>
+    <div class="card-body">
+      <div class="form-grid">{{ form.on_transcript.as_field_group }}</div>
+      <div id="hs-fields" class="hs-fields">
+        <div class="field" style="margin-top:1.25rem"><label>Course level</label>
+          <div class="segmented">{% for radio in form.level %}<label>{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>{% endfor %}</div>
+          <div class="help">Honors and AP / Dual enrollment add a bonus to the weighted GPA.</div>
+        </div>
+        <div class="form-grid" style="margin-top:1.25rem">
+          {{ form.credits.as_field_group }}
+          <div class="field" style="justify-content:flex-end">{{ form.pass_fail.as_field_group }}</div>
+        </div>
+      </div>
+    </div></div>
+
+  <details class="card more"{% if form.final_grade_override.value or form.description.value or form.errors %} open{% endif %}>
+    <summary class="card-head"><div><h2>More options</h2><p>Description, final grade override{% if form.copy_from %}, copy setup from another course{% endif %}</p></div>{% icon "right" 18 %}</summary>
+    <div class="card-body"><div class="form-grid">
+      {% if form.copy_from %}{{ form.copy_from.as_field_group }}{% endif %}
+      {{ form.final_grade_override.as_field_group }}
+      {{ form.completed.as_field_group }}
+      {{ form.description.as_field_group }}
+    </div></div>
+  </details>
+
+  <div class="actions" style="margin-bottom:2rem"><button class="btn" type="submit">{% icon "check" 16 %} Save course</button><a class="btn btn-ghost" href="{{ cancel_url }}">Cancel</a></div>
+</form>
+<script>
+(function () {
+  var box = document.getElementById("id_on_transcript"), hs = document.getElementById("hs-fields");
+  function sync() { hs.hidden = !box.checked; }
+  box.addEventListener("change", sync); sync();
+})();
+</script>
+{% endblock %}

@@ -444,3 +444,27 @@ input::placeholder, textarea::placeholder { color: var(--text-3); }
   .report { box-shadow: none; padding: 0; max-width: none; border-radius: 0; }
   a { color: inherit; }
 }
+
+/* choice cards (radio options with descriptions) */
+.choice-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.choice-card { position: relative; cursor: pointer; display: block; }
+.choice-card input { position: absolute; opacity: 0; inset: 0; }
+.choice-body {
+  display: flex; flex-direction: column; gap: .35rem; height: 100%; padding: 1rem; border-radius: var(--radius);
+  border: 1.5px solid var(--border-strong); background: var(--surface); transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.choice-card:hover .choice-body { border-color: var(--text-3); }
+.choice-card input:checked + .choice-body { border-color: var(--primary); background: var(--primary-soft); box-shadow: 0 0 0 1px var(--primary); }
+.choice-card input:focus-visible + .choice-body { box-shadow: var(--ring); }
+.choice-icon { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); }
+.choice-card input:checked + .choice-body .choice-icon { background: var(--primary); color: #fff; }
+.choice-title { font-weight: 650; font-size: .95rem; }
+.choice-desc { font-size: .82rem; color: var(--text-2); line-height: 1.4; }
+.hs-fields[hidden] { display: none; }
+details.more > summary { list-style: none; cursor: pointer; border-bottom: 0; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary .icon { color: var(--text-3); transition: transform .15s; }
+details.more[open] > summary { border-bottom: 1px solid var(--border); }
+details.more[open] > summary .icon { transform: rotate(90deg); }
+@media (max-width: 860px) { .choice-cards { grid-template-columns: 1fr; } }
+.field > .segmented { align-self: flex-start; }
