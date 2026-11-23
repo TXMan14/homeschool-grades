@@ -110,7 +110,10 @@ def dashboard(request):
             ):
                 courses.append(course_summary(course, settings, scale))
         course_count += len(courses)
-        students.append({"student": student, "enrollment": enrollment, "courses": courses})
+        students.append({
+            "student": student, "enrollment": enrollment, "courses": courses,
+            "has_transcript": student.courses.filter(on_transcript=True).exists(),
+        })
 
     progress = None
     if year:

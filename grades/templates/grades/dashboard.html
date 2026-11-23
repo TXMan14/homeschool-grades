@@ -66,7 +66,7 @@
     {% endif %}
     <div class="card-foot">
       {% if year %}<a class="btn btn-ghost btn-sm" href="{% url 'report_card' s.student.pk year.pk %}">{% icon "print" 15 %} Report card</a>{% endif %}
-      <a class="btn btn-ghost btn-sm" href="{% url 'transcript' s.student.pk %}">{% icon "file" 15 %} Transcript</a>
+      {% if s.enrollment.grade_level >= 8 or s.has_transcript %}<a class="btn btn-ghost btn-sm" href="{% url 'transcript' s.student.pk %}">{% icon "file" 15 %} Transcript</a>{% endif %}
     </div>
   </div>
 {% empty %}
