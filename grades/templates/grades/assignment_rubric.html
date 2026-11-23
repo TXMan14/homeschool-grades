@@ -1,19 +1,21 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
+{% block title %}Score {{ assignment.title }}{% endblock %}
 {% block content %}
-<p class="small"><a href="{{ assignment.course.get_absolute_url }}">← {{ assignment.course.name }}</a></p>
-<h1>Score: {{ assignment.title }}</h1>
-<p class="muted">Rubric: {{ rubric.name }}</p>
-<div class="card">
+<div class="crumbs"><a href="{{ assignment.course.get_absolute_url }}">{{ assignment.course.name }}</a> {% icon "right" 14 %} <span>Rubric</span></div>
+<div class="page-head"><div><h1>{{ assignment.title }}</h1><p class="sub">Scored with “{{ rubric.name }}”. Pick a level for each criterion.</p></div></div>
+<div class="card card-flush">
 <form method="post">{% csrf_token %}
-  <div class="table-wrap"><table>
-    <tr><th>Criterion</th>{% for level, label in levels %}<th>{{ level }}<br><span class="small">{{ label }}</span></th>{% endfor %}<th>Comment</th></tr>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Criterion</th><th>Level</th><th>Comment</th></tr></thead>
+    <tbody>
     {% for row in rows %}
-    <tr><td><strong>{{ row.criterion.name }}</strong><br><span class="small muted">{{ row.criterion.description }}</span></td>
-      {% for level, label in levels %}<td><input type="radio" name="level_{{ row.criterion.pk }}" value="{{ level }}"{% if row.score.level == level %} checked{% endif %} aria-label="{{ label }}"></td>{% endfor %}
-      <td><input type="text" name="comment_{{ row.criterion.pk }}" value="{{ row.score.comment|default:'' }}"></td></tr>
-    {% empty %}<tr><td class="muted">This rubric has no criteria yet. <a href="{{ rubric.get_absolute_url }}">Add some</a>.</td></tr>{% endfor %}
+    <tr><td style="min-width:200px"><span class="cell-title">{{ row.criterion.name }}</span>{% if row.criterion.description %}<div class="cell-sub">{{ row.criterion.description }}</div>{% endif %}</td>
+      <td><div class="segmented">{% for level, label in levels %}<label><input type="radio" name="level_{{ row.criterion.pk }}" value="{{ level }}"{% if row.score.level == level %} checked{% endif %}><span title="{{ label }}">{{ level }} · {{ label }}</span></label>{% endfor %}</div></td>
+      <td style="min-width:180px"><input class="input-sm" type="text" name="comment_{{ row.criterion.pk }}" value="{{ row.score.comment|default:'' }}" placeholder="Optional"></td></tr>
+    {% empty %}<tr><td colspan="3"><div class="empty"><h3>No criteria yet</h3><p><a href="{{ rubric.get_absolute_url }}">Add criteria to this rubric</a> first.</p></div></td></tr>{% endfor %}
+    </tbody>
   </table></div>
-  <button class="btn" type="submit" style="margin-top:.6rem">Save scores</button>
+  <div class="card-foot"><button class="btn" type="submit">{% icon "check" 16 %} Save scores</button><a class="btn btn-ghost" href="{{ assignment.course.get_absolute_url }}">Cancel</a></div>
 </form>
 </div>
 {% endblock %}

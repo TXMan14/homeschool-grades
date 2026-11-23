@@ -1,52 +1,65 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
 {% block title %}{{ student.full_name }}{% endblock %}
 {% block content %}
-<div class="spread">
-  <h1>{{ student.full_name }}</h1>
-  <div class="row">
-    <a class="btn secondary" href="{% url 'student_edit' student.pk %}">Edit</a>
-    <a class="btn secondary" href="{% url 'enrollment_create' student.pk %}">Set grade level for a year</a>
-    <a class="btn" href="{% url 'course_create' %}?student={{ student.pk }}">Add course</a>
+<div class="crumbs"><a href="{% url 'student_list' %}">Students</a> {% icon "right" 14 %} <span>{{ student.full_name }}</span></div>
+<div class="page-head">
+  <div class="who">
+    <div class="avatar lg {{ student|avatar_color }}">{{ student|initials }}</div>
+    <div>
+      <h1>{{ student.full_name }}</h1>
+      <div class="meta">
+        {% if student.birth_date %}<span class="badge">Born {{ student.birth_date|date:"M j, Y" }}</span>{% endif %}
+        {% if student.graduation_year %}<span class="badge badge-primary">{% icon "cap" 13 %} Class of {{ student.graduation_year }}</span>{% endif %}
+        {% if not student.active %}<span class="badge">Inactive</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="actions">
+    <a class="btn btn-secondary" href="{% url 'transcript' student.pk %}">{% icon "file" 16 %} Transcript</a>
+    <a class="btn btn-secondary" href="{% url 'student_edit' student.pk %}">{% icon "edit" 16 %} Edit</a>
+    <a class="btn" href="{% url 'course_create' %}?student={{ student.pk }}">{% icon "plus" 16 %} Course</a>
   </div>
 </div>
-<p class="muted">
-  {% if student.birth_date %}Born {{ student.birth_date }} · {% endif %}
-  {% if student.graduation_year %}Class of {{ student.graduation_year }} · {% endif %}
-  <a href="{% url 'transcript' student.pk %}">High school transcript</a>{% if not has_transcript %} <span class="small">(no transcript courses yet)</span>{% endif %}
-</p>
 
 {% for y in years %}
-<div class="card">
-  <div class="spread">
-    <h2 style="margin:0">{{ y.year }} {% if y.enrollment %}<span class="pill">{{ y.enrollment.get_grade_level_display }}</span> <a class="small" href="{% url 'enrollment_edit' y.enrollment.pk %}">change</a>{% endif %}</h2>
-    <div class="row small">
-      <a href="{% url 'report_card' student.pk y.year.pk %}">Report card</a>
-      {% for t in y.year.terms.all %}· <a href="{% url 'report_card' student.pk y.year.pk %}?term={{ t.pk }}">{{ t.name }}</a>{% endfor %}
+<div class="card card-flush">
+  <div class="card-head">
+    <div>
+      <h2>{{ y.year.name }}</h2>
+      <p>{% if y.enrollment %}{{ y.enrollment.get_grade_level_display }} · <a href="{% url 'enrollment_edit' y.enrollment.pk %}?next={{ request.path }}">change</a>{% else %}<a href="{% url 'enrollment_create' student.pk %}">Set grade level</a>{% endif %}
+      {% if y.attendance %} · {{ y.attendance.days_attended|floatformat:"-1" }} of {{ school.required_school_days }} days · <a href="{% url 'attendance_student' student.pk y.year.pk %}">attendance</a>{% endif %}</p>
+    </div>
+    <div class="actions">
+      <a class="btn btn-secondary btn-sm" href="{% url 'report_card' student.pk y.year.pk %}">{% icon "print" 15 %} Report card</a>
     </div>
   </div>
   {% if y.courses %}
-  <div class="table-wrap"><table>
-    <tr><th>Course</th><th>Method</th><th>Level</th><th class="num">Credits</th><th class="num">Grade</th></tr>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Course</th><th>Grading</th><th class="num">Credits</th><th class="num">Average</th><th class="num">Grade</th></tr></thead>
+    <tbody>
     {% for c in y.courses %}
     <tr>
-      <td><a href="{{ c.course.get_absolute_url }}">{{ c.course.name }}</a>{% if c.course.on_transcript %} <span class="pill">transcript</span>{% endif %}</td>
-      <td class="small">{{ c.course.get_grading_method_display }}</td>
-      <td class="small">{{ c.course.get_level_display }}</td>
-      <td class="num">{% if c.course.on_transcript %}{{ c.course.credits }}{% endif %}</td>
-      <td class="num grade">{% if c.course.is_checklist %}<span class="muted small">checklist</span>{% else %}{{ c.grade.display }}{% endif %}</td>
+      <td><a class="cell-title" href="{{ c.course.get_absolute_url }}">{{ c.course.name }}</a>
+        <div class="cell-sub">{{ c.course.get_subject_display }}{% if c.course.level != "regular" %} · {{ c.course.get_level_display }}{% endif %}</div></td>
+      <td class="muted small">{% if c.course.is_weighted %}Weighted{% elif c.course.is_letter %}Letter{% else %}Checklist{% endif %}</td>
+      <td class="num">{% if c.course.on_transcript %}{{ c.course.credits|floatformat:"-2" }}{% else %}<span class="muted">–</span>{% endif %}</td>
+      <td class="num">{% if c.grade.percent is not None %}{{ c.grade.percent|floatformat:1 }}%{% else %}<span class="muted">–</span>{% endif %}</td>
+      <td class="num">{% if c.course.is_checklist and not c.grade.letter %}<span class="grade-chip">{% icon "list" 15 %}</span>{% else %}<span class="grade-chip g-{{ c.grade.letter|grade_class }}">{{ c.grade.letter|default:"–" }}</span>{% endif %}</td>
     </tr>
     {% endfor %}
+    </tbody>
   </table></div>
-  {% else %}<p class="muted">No courses.</p>{% endif %}
-  {% if y.attendance %}
-  <p class="small">Attendance: <strong>{{ y.attendance.days_attended }}</strong> days attended of {{ school.required_school_days }} ·
-    <a href="{% url 'attendance_student' student.pk y.year.pk %}">details</a></p>
-  {% endif %}
+  {% else %}<div class="empty" style="padding:1.5rem"><p class="small">No courses this year.</p></div>{% endif %}
 </div>
 {% empty %}
-<div class="card"><p class="muted">No school years yet for {{ student.first_name }}. <a href="{% url 'enrollment_create' student.pk %}">Set a grade level</a> or <a href="{% url 'course_create' %}?student={{ student.pk }}">add a course</a>.</p></div>
+<div class="card"><div class="empty">
+  <div class="icon-wrap">{% icon "book" 22 %}</div>
+  <h3>Nothing here yet</h3>
+  <p>Set {{ student.first_name }}'s grade level for this school year, then add courses.</p>
+  <div class="actions" style="justify-content:center"><a class="btn btn-secondary" href="{% url 'enrollment_create' student.pk %}">Set grade level</a><a class="btn" href="{% url 'course_create' %}?student={{ student.pk }}">{% icon "plus" 16 %} Add course</a></div>
+</div></div>
 {% endfor %}
 
-{% if student.notes %}<div class="card"><h3>Notes</h3><p>{{ student.notes|linebreaksbr }}</p></div>{% endif %}
-<p class="small"><a href="{% url 'student_delete' student.pk %}" style="color:var(--danger)">Delete student</a></p>
+{% if student.notes %}<div class="card"><div class="card-head"><h3>Notes</h3></div><div class="card-body">{{ student.notes|linebreaks }}</div></div>{% endif %}
+<a class="link-danger" href="{% url 'student_delete' student.pk %}">{% icon "trash" 15 %} Delete student</a>
 {% endblock %}

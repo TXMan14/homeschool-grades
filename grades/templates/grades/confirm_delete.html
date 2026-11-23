@@ -1,10 +1,14 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
+{% block title %}Delete{% endblock %}
 {% block content %}
-<div class="card" style="max-width:560px">
-  <h1>Delete?</h1>
-  <p>This will permanently delete <strong>{{ description }}</strong>.</p>
+<div class="card form-card" style="max-width:520px;margin-top:2rem"><div class="card-body">
+  <div class="empty" style="padding:1rem 0 0">
+    <div class="icon-wrap" style="background:var(--danger-soft);color:var(--danger)">{% icon "trash" 22 %}</div>
+    <h3>Delete this?</h3>
+    <p>This permanently deletes <strong>{{ description }}</strong>. This can't be undone.</p>
+  </div>
   <form method="post">{% csrf_token %}
-    <div class="row"><button class="btn danger" type="submit">Yes, delete</button> <a class="btn secondary" href="{{ cancel_url }}">Cancel</a></div>
+    <div class="form-actions" style="justify-content:center"><a class="btn btn-secondary" href="{{ cancel_url }}">Cancel</a><button class="btn btn-danger" type="submit">Yes, delete</button></div>
   </form>
-</div>
+</div></div>
 {% endblock %}

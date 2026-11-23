@@ -1,12 +1,26 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
+{% block title %}Students{% endblock %}
 {% block content %}
-<div class="spread"><h1>Students</h1><a class="btn" href="{% url 'student_create' %}">Add student</a></div>
-<div class="card"><table>
-<tr><th>Name</th><th>Birth date</th><th>Graduation</th><th></th></tr>
-{% for s in students %}
-<tr><td><a href="{{ s.get_absolute_url }}">{{ s.full_name }}</a>{% if not s.active %} <span class="pill">inactive</span>{% endif %}</td>
-<td>{{ s.birth_date|default:"" }}</td><td>{{ s.graduation_year|default:"" }}</td>
-<td class="num"><a href="{% url 'student_edit' s.pk %}">Edit</a></td></tr>
-{% empty %}<tr><td colspan="4" class="muted">No students yet.</td></tr>{% endfor %}
+<div class="page-head"><div><h1>Students</h1><p class="sub">Everyone enrolled in your home school.</p></div>
+  <div class="actions"><a class="btn" href="{% url 'student_create' %}">{% icon "plus" 16 %} Add student</a></div></div>
+<div class="card card-flush">
+{% if students %}
+<div class="table-wrap"><table class="table">
+  <thead><tr><th>Student</th><th>Born</th><th>Class of</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for s in students %}
+  <tr>
+    <td><div class="who"><div class="avatar {{ s|avatar_color }}" style="width:34px;height:34px;font-size:.8rem">{{ s|initials }}</div><a class="cell-title" href="{{ s.get_absolute_url }}">{{ s.full_name }}</a></div></td>
+    <td class="muted">{{ s.birth_date|date:"M j, Y"|default:"–" }}</td>
+    <td class="muted">{{ s.graduation_year|default:"–" }}</td>
+    <td>{% if s.active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
+    <td class="row-actions"><a class="btn btn-icon" href="{% url 'student_edit' s.pk %}?next={% url 'student_list' %}" title="Edit">{% icon "edit" 16 %}</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
 </table></div>
+{% else %}
+<div class="empty"><div class="icon-wrap">{% icon "users" 22 %}</div><h3>No students yet</h3><p>Add each child to start tracking their courses.</p><a class="btn" href="{% url 'student_create' %}">{% icon "plus" 16 %} Add student</a></div>
+{% endif %}
+</div>
 {% endblock %}

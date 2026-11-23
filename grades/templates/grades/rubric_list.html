@@ -1,10 +1,16 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
+{% block title %}Rubrics{% endblock %}
 {% block content %}
-<div class="spread"><h1>Rubrics</h1><a class="btn" href="{% url 'rubric_create' %}">New rubric</a></div>
-<p class="muted">Rubrics score essays, projects, narrations and presentations. Attach one to an assignment, then score each criterion. The total becomes the assignment's points.</p>
-<div class="card"><table>
-  <tr><th>Rubric</th><th>Criteria</th><th>Scale</th></tr>
-  {% for r in rubrics %}<tr><td><a href="{{ r.get_absolute_url }}">{{ r.name }}</a></td><td>{{ r.criteria.all|length }}</td><td>1–{{ r.max_level }}</td></tr>
-  {% empty %}<tr><td colspan="3" class="muted">No rubrics yet.</td></tr>{% endfor %}
-</table></div>
+<div class="page-head"><div><h1>Rubrics</h1><p class="sub">Score essays, projects and presentations by criteria. The total becomes the assignment's points.</p></div>
+  <div class="actions"><a class="btn" href="{% url 'rubric_create' %}">{% icon "plus" 16 %} New rubric</a></div></div>
+<div class="card card-flush">
+{% if rubrics %}
+<table class="table">
+  <thead><tr><th>Rubric</th><th class="num">Criteria</th><th class="num">Scale</th></tr></thead>
+  <tbody>{% for r in rubrics %}<tr><td><a class="cell-title" href="{{ r.get_absolute_url }}">{{ r.name }}</a>{% if r.description %}<div class="cell-sub">{{ r.description|truncatechars:80 }}</div>{% endif %}</td><td class="num">{{ r.criteria.all|length }}</td><td class="num"><span class="badge">1–{{ r.max_level }}</span></td></tr>{% endfor %}</tbody>
+</table>
+{% else %}
+<div class="empty"><div class="icon-wrap">{% icon "rubric" 22 %}</div><h3>No rubrics yet</h3><p>Create one for writing assignments, science fair projects or oral narrations.</p><a class="btn" href="{% url 'rubric_create' %}">{% icon "plus" 16 %} New rubric</a></div>
+{% endif %}
+</div>
 {% endblock %}

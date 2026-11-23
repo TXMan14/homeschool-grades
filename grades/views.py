@@ -98,7 +98,9 @@ def dashboard(request):
     settings = SchoolSettings.load()
     scale = grading.grade_scale()
     year = SchoolYear.current()
+    today = timezone.localdate()
     students = []
+    course_count = 0
     for student in Student.objects.filter(active=True):
         enrollment = student.enrollments.filter(school_year=year).first() if year else None
         courses = []
@@ -107,9 +109,33 @@ def dashboard(request):
                 "assignments", "categories", "term_grades"
             ):
                 courses.append(course_summary(course, settings, scale))
+        course_count += len(courses)
         students.append({"student": student, "enrollment": enrollment, "courses": courses})
+
+    progress = None
+    if year:
+        total = (year.end_date - year.start_date).days or 1
+        done = min(max((today - year.start_date).days, 0), total)
+        progress = {"pct": round(done * 100 / total), "days_left": max((year.end_date - today).days, 0)}
+
+    attendance_today = None
+    if settings.track_attendance:
+        attendance_today = {
+            "recorded": AttendanceRecord.objects.filter(date=today, student__active=True).count(),
+            "total": len(students),
+        }
+
+    steps = [
+        ("Name your school and pick options", reverse("settings"),
+         settings.school_name != "Our Home School"),
+        ("Add a school year", reverse("year_create"), SchoolYear.objects.exists()),
+        ("Add your students", reverse("student_create"), Student.objects.exists()),
+        ("Add courses", reverse("course_create"), Course.objects.exists()),
+    ]
     return render(request, "grades/dashboard.html", {
-        "year": year, "students": students, "needs_setup": not SchoolYear.objects.exists(),
+        "year": year, "students": students, "course_count": course_count,
+        "progress": progress, "attendance_today": attendance_today, "today": today,
+        "steps": steps, "show_steps": not all(done for _, _, done in steps),
     })
 
 
@@ -359,7 +385,10 @@ def course_detail(request, pk):
         context["quick_form"] = QuickAssignmentForm(course=course, initial={
             "date": today, "term": current_term, "points_possible": 100,
         })
-        context["assignments"] = course.assignments.select_related("category", "term", "rubric")
+        context["assignments"] = list(course.assignments.select_related("category", "term", "rubric"))
+        context["graded_count"] = sum(1 for a in context["assignments"] if a.is_graded)
+        for a in context["assignments"]:
+            a.letter = grading.letter_for_percent(a.percent, scale)
         context["categories"] = course.categories.all()
         context["category_form"] = CategoryForm()
     if course.is_checklist:
@@ -376,7 +405,8 @@ def course_detail(request, pk):
         context.update({
             "hours_total": hours,
             "hours_suggested_credits": grading.suggested_credits(hours, settings),
-            "hours_logs": course.hours_logs.all()[:20],
+            "hours_logs": course.hours_logs.all()[:8],
+            "hours_log_count": course.hours_logs.count(),
             "hours_form": HoursLogForm(initial={"date": timezone.localdate(), "hours": 1}),
         })
     return render(request, "grades/course_detail.html", context)

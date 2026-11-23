@@ -1,28 +1,35 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
+{% block title %}Attendance{% endblock %}
 {% block content %}
-<div class="spread"><h1>Attendance</h1>
-  <form class="inline-form" method="get"><p>{{ date_form.date }}</p><button class="btn secondary small" type="submit">Go</button></form></div>
-<div class="row" style="margin-bottom:.8rem">
-  <a href="?date={{ prev.isoformat }}">← Previous day</a> · <strong>{{ day|date:"l, F j, Y" }}</strong> · <a href="?date={{ next.isoformat }}">Next day →</a>
-</div>
-<div class="card">
-<form method="post">{% csrf_token %}
-  <table>
-    <tr><th>Student</th><th>Status</th><th>Note</th><th class="num">Days this year</th></tr>
-    {% for r in rows %}
-    <tr><td>{{ r.student.full_name }}</td>
-      <td><select name="status_{{ r.student.pk }}">
-        <option value=""{% if not r.record %} selected{% endif %}>(not recorded)</option>
-        {% for code, label in statuses %}<option value="{{ code }}"{% if r.record.status == code %} selected{% endif %}>{{ label }}</option>{% endfor %}
-      </select></td>
-      <td><input type="text" name="note_{{ r.student.pk }}" value="{{ r.record.note|default:'' }}"></td>
-      <td class="num">{% if r.summary %}<a href="{% url 'attendance_student' r.student.pk year.pk %}">{{ r.summary.days_attended }}</a> / {{ school.required_school_days }}{% endif %}</td></tr>
-    {% endfor %}
-  </table>
-  <div class="row" style="margin-top:.6rem">
-    <button class="btn" type="submit">Save and go to next school day</button>
-    <button class="btn secondary" type="button" onclick="document.querySelectorAll('select[name^=status_]').forEach(s=>s.value='present')">Mark everyone present</button>
+<div class="page-head">
+  <div><h1>Attendance</h1><p class="sub">{{ day|date:"l, F j, Y" }}</p></div>
+  <div class="actions">
+    <a class="btn btn-secondary btn-icon" style="width:38px;height:38px" href="?date={{ prev.isoformat }}" title="Previous day">{% icon "left" 18 %}</a>
+    <form method="get" style="display:flex;gap:.5rem"><input type="date" name="date" value="{{ day.isoformat }}" onchange="this.form.submit()" style="width:auto" aria-label="Date"></form>
+    <a class="btn btn-secondary btn-icon" style="width:38px;height:38px" href="?date={{ next.isoformat }}" title="Next day">{% icon "right" 18 %}</a>
   </div>
+</div>
+<div class="card card-flush">
+<form method="post">{% csrf_token %}
+  <div class="card-head"><div><h2>Who did school today?</h2><p>Saving moves you to the next school day.</p></div>
+    <button class="btn btn-secondary btn-sm" type="button" onclick="document.querySelectorAll('input[type=radio][value=present]').forEach(r=>r.checked=true)">{% icon "check" 15 %} Everyone present</button></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Student</th><th>Status</th><th>Note</th><th class="num">This year</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+    <tr>
+      <td><div class="who"><div class="avatar {{ r.student|avatar_color }}" style="width:34px;height:34px;font-size:.8rem">{{ r.student|initials }}</div><span class="cell-title">{{ r.student.full_name }}</span></div></td>
+      <td><div class="segmented">
+        {% for code, label in statuses %}<label><input type="radio" name="status_{{ r.student.pk }}" value="{{ code }}"{% if r.record.status == code %} checked{% endif %}><span class="s-{{ code }}">{{ label }}</span></label>{% endfor %}
+        <label><input type="radio" name="status_{{ r.student.pk }}" value=""{% if not r.record %} checked{% endif %}><span>–</span></label>
+      </div></td>
+      <td style="min-width:160px"><input class="input-sm" type="text" name="note_{{ r.student.pk }}" value="{{ r.record.note|default:'' }}" placeholder="Optional note"></td>
+      <td class="num">{% if r.summary %}<a href="{% url 'attendance_student' r.student.pk year.pk %}"><strong>{{ r.summary.days_attended|floatformat:"-1" }}</strong></a><span class="muted"> / {{ school.required_school_days }}</span>{% endif %}</td>
+    </tr>
+    {% empty %}<tr><td colspan="4"><div class="empty"><p>No active students.</p></div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+  <div class="card-foot"><button class="btn" type="submit">{% icon "check" 16 %} Save and go to next day</button></div>
 </form>
 </div>
 {% endblock %}

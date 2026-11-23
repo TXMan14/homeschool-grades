@@ -1,21 +1,30 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
+{% block title %}School years{% endblock %}
 {% block content %}
-<div class="spread"><h1>School years</h1><a class="btn" href="{% url 'year_create' %}">Add school year</a></div>
+<div class="page-head"><div><h1>School years</h1><p class="sub">Each year has grading periods (semesters or quarters) that appear on report cards.</p></div>
+  <div class="actions"><a class="btn" href="{% url 'year_create' %}">{% icon "plus" 16 %} Add school year</a></div></div>
 {% for y in years %}
-<div class="card">
-  <div class="spread">
-    <h2 style="margin:0">{{ y.name }} {% if y.is_current %}<span class="pill">current</span>{% endif %}</h2>
-    <div class="row small"><a href="{% url 'year_edit' y.pk %}">Edit</a> · <a href="{% url 'year_delete' y.pk %}" style="color:var(--danger)">Delete</a></div>
+<div class="card card-flush">
+  <div class="card-head">
+    <div><h2>{{ y.name }} {% if y.is_current %}<span class="badge badge-success" style="margin-left:.35rem">Current</span>{% endif %}</h2>
+      <p>{{ y.start_date|date:"M j, Y" }} – {{ y.end_date|date:"M j, Y" }}</p></div>
+    <div class="actions">
+      <a class="btn btn-secondary btn-sm" href="{% url 'term_create' y.pk %}">{% icon "plus" 14 %} Grading period</a>
+      <a class="btn btn-icon" href="{% url 'year_edit' y.pk %}" title="Edit year">{% icon "edit" 16 %}</a>
+      <a class="btn btn-icon danger" href="{% url 'year_delete' y.pk %}" title="Delete year">{% icon "trash" 16 %}</a>
+    </div>
   </div>
-  <p class="muted small">{{ y.start_date }} to {{ y.end_date }}</p>
-  <table>
-    <tr><th>Grading period</th><th>Dates</th><th></th></tr>
-    {% for t in y.terms.all %}
-    <tr><td>{{ t.name }}</td><td class="small">{{ t.start_date|default:"" }} – {{ t.end_date|default:"" }}</td>
-      <td class="num small"><a href="{% url 'term_edit' t.pk %}">Edit</a> · <a href="{% url 'term_delete' t.pk %}">Delete</a></td></tr>
-    {% empty %}<tr><td colspan="3" class="muted">No grading periods. Report cards will just show the final grade.</td></tr>{% endfor %}
+  {% if y.terms.all %}
+  <table class="table">
+    <thead><tr><th>Grading period</th><th>Dates</th><th></th></tr></thead>
+    <tbody>{% for t in y.terms.all %}
+    <tr><td class="cell-title">{{ t.name }}</td><td class="muted">{{ t.start_date|date:"M j"|default:"?" }} – {{ t.end_date|date:"M j, Y"|default:"?" }}</td>
+      <td class="row-actions"><a class="btn btn-icon" href="{% url 'term_edit' t.pk %}" title="Edit">{% icon "edit" 16 %}</a><a class="btn btn-icon danger" href="{% url 'term_delete' t.pk %}" title="Delete">{% icon "trash" 16 %}</a></td></tr>
+    {% endfor %}</tbody>
   </table>
-  <p class="small"><a href="{% url 'term_create' y.pk %}">+ Add grading period</a></p>
+  {% else %}<div class="empty" style="padding:1.25rem"><p class="small">No grading periods. Report cards will show only the final grade.</p></div>{% endif %}
 </div>
-{% empty %}<div class="card"><p>No school years yet. <a href="{% url 'year_create' %}">Add one</a>.</p></div>{% endfor %}
+{% empty %}
+<div class="card"><div class="empty"><div class="icon-wrap">{% icon "calendar" 22 %}</div><h3>No school years yet</h3><p>Create your first year. Semesters or quarters are set up for you.</p><a class="btn" href="{% url 'year_create' %}">{% icon "plus" 16 %} Add school year</a></div></div>
+{% endfor %}
 {% endblock %}

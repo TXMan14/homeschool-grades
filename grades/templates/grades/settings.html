@@ -1,19 +1,44 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
+{% block title %}Settings{% endblock %}
 {% block content %}
-<h1>Settings</h1>
-<form method="post">{% csrf_token %}
-<div class="two-col">
-  <div class="card"><h3>School and options</h3>{{ form.as_p }}</div>
-  <div class="card"><h3>Grading scale</h3>
-    <p class="small muted">Percent needed for each letter and its grade points on a 4.0 scale. Add rows for plus/minus grades (for example B+ at 87% = 3.3). Tick Delete to remove a row.</p>
-    {{ formset.management_form }}{{ formset.non_form_errors }}
-    <table><tr><th>Letter</th><th>Min %</th><th>Points</th><th>Delete</th></tr>
-    {% for f in formset %}<tr>{{ f.id }}<td>{{ f.letter }}{{ f.letter.errors }}</td><td>{{ f.min_percent }}{{ f.min_percent.errors }}</td><td>{{ f.grade_points }}{{ f.grade_points.errors }}</td><td>{{ f.DELETE }}</td></tr>{% endfor %}
-    </table>
-    <p class="small muted" style="margin-top:1rem">P (pass), I (incomplete), W (withdrawn) and IP (in progress) can be entered as final grades and are left out of the GPA.</p>
-    <p class="small"><a href="{% url 'password_change' %}">Change your password</a> · <a href="{% url 'admin:index' %}">Raw data admin</a></p>
+<div class="page-head"><div><h1>Settings</h1><p class="sub">School details, optional features and your grading scale.</p></div>
+  <div class="actions"><a class="btn btn-secondary" href="{% url 'password_change' %}">{% icon "key" 16 %} Change password</a></div></div>
+<form method="post" novalidate>{% csrf_token %}
+{% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+<div class="layout-side">
+  <div>
+    <div class="card"><div class="card-head"><div><h2>School</h2><p>Printed on report cards and transcripts.</p></div></div>
+      <div class="card-body"><div class="form-grid">
+        {{ form.school_name.as_field_group }}{{ form.administrator.as_field_group }}
+        {{ form.phone.as_field_group }}{{ form.email.as_field_group }}
+        {{ form.address.as_field_group }}
+      </div></div></div>
+    <div class="card"><div class="card-head"><div><h2>Optional features</h2><p>Turn on only what you need.</p></div></div>
+      <div class="card-body"><div class="form-grid">
+        {{ form.track_hours.as_field_group }}{{ form.hours_per_credit.as_field_group }}
+        {{ form.track_attendance.as_field_group }}{{ form.required_school_days.as_field_group }}
+      </div></div></div>
+    <div class="card"><div class="card-head"><div><h2>GPA</h2><p>Weighted GPA adds a bonus for advanced courses.</p></div></div>
+      <div class="card-body"><div class="form-grid">
+        {{ form.honors_bonus.as_field_group }}{{ form.ap_bonus.as_field_group }}
+        {{ form.show_weighted_gpa.as_field_group }}
+      </div></div></div>
+  </div>
+  <div>
+    <div class="card card-flush"><div class="card-head"><div><h2>Grading scale</h2><p>Add rows for plus/minus grades, e.g. B+ at 87% = 3.3.</p></div></div>
+      {{ formset.management_form }}
+      {% if formset.non_form_errors %}<div class="alert alert-error" style="margin:1rem">{{ formset.non_form_errors }}</div>{% endif %}
+      <table class="table">
+        <thead><tr><th>Letter</th><th>Min %</th><th>Points</th><th title="Delete">{% icon "trash" 14 %}</th></tr></thead>
+        <tbody>{% for f in formset %}<tr>{{ f.id }}
+          <td>{{ f.letter }}{% if f.letter.errors %}<div class="field-error">{{ f.letter.errors|join:" " }}</div>{% endif %}</td>
+          <td>{{ f.min_percent }}</td><td>{{ f.grade_points }}</td><td>{{ f.DELETE }}</td></tr>{% endfor %}</tbody>
+      </table>
+      <div class="card-body help">P, I, W and IP can be used as final grades and are left out of the GPA.</div>
+    </div>
+    <div class="card"><div class="card-body small"><a href="{% url 'admin:index' %}">Open the raw data admin</a> <span class="muted">for bulk fixes.</span></div></div>
   </div>
 </div>
-<button class="btn" type="submit">Save settings</button>
+<div class="form-actions" style="border:0;margin-top:0;padding-top:0"><button class="btn" type="submit">{% icon "check" 16 %} Save settings</button></div>
 </form>
 {% endblock %}

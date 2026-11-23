@@ -87,16 +87,21 @@ class CourseForm(forms.ModelForm):
         model = Course
         fields = [
             "student", "school_year", "name", "subject", "grading_method", "level",
-            "on_transcript", "credits", "pass_fail", "final_grade_override",
+            "credits", "final_grade_override", "on_transcript", "pass_fail",
             "completed", "description",
         ]
         widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+        labels = {"pass_fail": "Pass / fail", "on_transcript": "On high school transcript",
+                  "final_grade_override": "Final grade override", "name": "Course name"}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["student"].empty_label = "Choose a student"
+        self.fields["school_year"].empty_label = "Choose a year"
         if self.instance.pk:
             del self.fields["copy_from"]
         else:
+            self.fields["copy_from"].empty_label = "Start fresh"
             self.fields["copy_from"].queryset = Course.objects.select_related(
                 "student", "school_year"
             ).order_by("-school_year__start_date", "name")
@@ -122,6 +127,7 @@ class AssignmentForm(forms.ModelForm):
         course = course or self.instance.course
         self.fields["category"].queryset = course.categories.all()
         self.fields["term"].queryset = course.school_year.terms.all()
+        self.fields["term"].label_from_instance = lambda t: t.name
         if not course.categories.exists():
             self.fields["category"].help_text = "Add categories on the course page to weight grades."
 
@@ -129,6 +135,17 @@ class AssignmentForm(forms.ModelForm):
 class QuickAssignmentForm(AssignmentForm):
     class Meta(AssignmentForm.Meta):
         fields = ["title", "category", "term", "date", "points_earned", "points_possible"]
+        widgets = {
+            "date": DateInput(),
+            "points_earned": forms.NumberInput(attrs={"placeholder": "—", "step": "any"}),
+            "points_possible": forms.NumberInput(attrs={"step": "any"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["term"].label_from_instance = lambda t: t.name
+        self.fields["category"].empty_label = "No category"
+        self.fields["term"].empty_label = "No period"
 
 
 class HoursLogForm(forms.ModelForm):
@@ -164,7 +181,12 @@ class SchoolSettingsForm(forms.ModelForm):
 
 
 GradeScaleFormSet = modelformset_factory(
-    GradeScaleEntry, fields=["letter", "min_percent", "grade_points"], extra=2, can_delete=True
+    GradeScaleEntry, fields=["letter", "min_percent", "grade_points"], extra=2, can_delete=True,
+    widgets={
+        "letter": forms.TextInput(attrs={"class": "input-sm", "style": "width:70px"}),
+        "min_percent": forms.NumberInput(attrs={"class": "input-sm", "style": "width:90px"}),
+        "grade_points": forms.NumberInput(attrs={"class": "input-sm", "style": "width:80px"}),
+    },
 )
 
 

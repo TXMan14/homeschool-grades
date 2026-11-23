@@ -1,42 +1,80 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
 {% block content %}
-<div class="spread"><h1>{% if year %}{{ year }}{% else %}Welcome{% endif %}</h1>
-  <div class="row"><a class="btn secondary" href="{% url 'student_create' %}">Add student</a> <a class="btn" href="{% url 'course_create' %}">Add course</a></div></div>
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p class="sub">{{ today|date:"l, F j" }}{% if year %} · {{ year.name }} school year{% endif %}</p>
+  </div>
+  <div class="actions">
+    <a class="btn btn-secondary" href="{% url 'student_create' %}">{% icon "plus" 16 %} Student</a>
+    <a class="btn" href="{% url 'course_create' %}">{% icon "plus" 16 %} Course</a>
+  </div>
+</div>
 
-{% if needs_setup %}
-<div class="notice">
-  <strong>Getting started:</strong>
-  1. <a href="{% url 'settings' %}">Enter your school name</a> and choose whether to track hours and attendance.
-  2. <a href="{% url 'year_create' %}">Add a school year</a> (grading periods are created for you).
-  3. <a href="{% url 'student_create' %}">Add your students</a> and set each one's grade level.
-  4. Add courses for each student.
+{% if show_steps %}
+<div class="card">
+  <div class="card-head"><div><h2>Get set up</h2><p>Four quick steps and you're ready to grade.</p></div></div>
+  <div class="card-body">
+    <ol class="steps">
+      {% for label, url, done in steps %}
+      <li class="{% if done %}done{% endif %}"><span class="n">{% if done %}{% icon "check" 14 %}{% else %}{{ forloop.counter }}{% endif %}</span><a href="{{ url }}">{{ label }}</a></li>
+      {% endfor %}
+    </ol>
+  </div>
 </div>
 {% endif %}
 
-<div class="grid">
+{% if students %}
+<div class="stats">
+  <div class="stat"><div class="stat-label">{% icon "users" 15 %} Students</div><div class="stat-value">{{ students|length }}</div></div>
+  <div class="stat"><div class="stat-label">{% icon "book" 15 %} Courses this year</div><div class="stat-value">{{ course_count }}</div></div>
+  {% if progress %}
+  <div class="stat"><div class="stat-label">{% icon "calendar" 15 %} School year</div>
+    <div class="stat-value">{{ progress.pct }}%<small>{{ progress.days_left }} days left</small></div>
+    <div class="bar" style="margin-top:.5rem"><span style="width:{{ progress.pct }}%"></span></div></div>
+  {% endif %}
+  {% if attendance_today %}
+  <a class="stat" href="{% url 'attendance' %}" style="color:inherit"><div class="stat-label">{% icon "attendance" 15 %} Attendance today</div>
+    <div class="stat-value">{{ attendance_today.recorded }}<small>of {{ attendance_today.total }} recorded</small></div></a>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="grid grid-3">
 {% for s in students %}
-  <div class="card">
-    <div class="spread">
-      <h2 style="margin:0"><a href="{{ s.student.get_absolute_url }}">{{ s.student.full_name }}</a></h2>
-      {% if s.enrollment %}<span class="pill">{{ s.enrollment.get_grade_level_display }}</span>
-      {% elif year %}<a class="small" href="{% url 'enrollment_create' s.student.pk %}">Set grade level</a>{% endif %}
+  <div class="card student-card">
+    <div class="card-head">
+      <div class="who">
+        <div class="avatar {{ s.student|avatar_color }}">{{ s.student|initials }}</div>
+        <div><a class="who-name" href="{{ s.student.get_absolute_url }}">{{ s.student.full_name }}</a>
+          <div class="who-sub">{% if s.enrollment %}{{ s.enrollment.get_grade_level_display }}{% elif year %}<a href="{% url 'enrollment_create' s.student.pk %}">Set grade level</a>{% endif %}</div></div>
+      </div>
+      <a class="btn-icon btn" href="{% url 'course_create' %}?student={{ s.student.pk }}" title="Add course">{% icon "plus" 18 %}</a>
     </div>
     {% if s.courses %}
-    <table>
+    <ul class="course-list">
       {% for c in s.courses %}
-      <tr><td><a href="{{ c.course.get_absolute_url }}">{{ c.course.name }}</a></td>
-          <td class="num grade">{% if c.course.is_checklist %}<span class="muted small">checklist</span>{% else %}{{ c.grade.display }}{% endif %}</td></tr>
+      <li><a href="{{ c.course.get_absolute_url }}">
+        <span><span class="c-name">{{ c.course.name }}</span>{% if c.grade.percent is not None %}<br><span class="c-pct">{{ c.grade.percent|floatformat:1 }}%</span>{% elif c.course.is_checklist %}<br><span class="c-pct">Skills checklist</span>{% endif %}</span>
+        {% if c.course.is_checklist and not c.grade.letter %}<span class="grade-chip">{% icon "list" 15 %}</span>{% else %}<span class="grade-chip g-{{ c.grade.letter|grade_class }}">{{ c.grade.letter|default:"–" }}</span>{% endif %}
+        {% if c.grade.percent is not None %}<div class="bar g-{{ c.grade.letter|grade_class }}"><span style="width:{{ c.grade.percent|pct_width }}%"></span></div>{% endif %}
+      </a></li>
       {% endfor %}
-    </table>
-    {% else %}<p class="muted">No courses this year yet.</p>{% endif %}
-    <div class="row small" style="margin-top:.6rem">
-      <a href="{% url 'course_create' %}?student={{ s.student.pk }}">+ Course</a>
-      {% if year %}· <a href="{% url 'report_card' s.student.pk year.pk %}">Report card</a>{% endif %}
-      · <a href="{% url 'transcript' s.student.pk %}">Transcript</a>
+    </ul>
+    {% else %}
+    <div class="empty" style="padding:1.25rem"><p class="small">No courses this year yet.</p><a class="btn btn-secondary btn-sm" href="{% url 'course_create' %}?student={{ s.student.pk }}">{% icon "plus" 14 %} Add a course</a></div>
+    {% endif %}
+    <div class="card-foot">
+      {% if year %}<a class="btn btn-ghost btn-sm" href="{% url 'report_card' s.student.pk year.pk %}">{% icon "print" 15 %} Report card</a>{% endif %}
+      <a class="btn btn-ghost btn-sm" href="{% url 'transcript' s.student.pk %}">{% icon "file" 15 %} Transcript</a>
     </div>
   </div>
 {% empty %}
-  <div class="card"><p>No students yet. <a href="{% url 'student_create' %}">Add one</a>.</p></div>
+  <div class="card" style="grid-column:1/-1"><div class="empty">
+    <div class="icon-wrap">{% icon "users" 22 %}</div>
+    <h3>No students yet</h3><p>Add each of your children to start tracking courses and grades.</p>
+    <a class="btn" href="{% url 'student_create' %}">{% icon "plus" 16 %} Add student</a>
+  </div></div>
 {% endfor %}
 </div>
 {% endblock %}

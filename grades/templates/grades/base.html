@@ -1,26 +1,44 @@
-{% load static %}<!doctype html>
+{% load static ui %}<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>{% block title %}{{ school.school_name|default:"Home School Grades" }}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="{% static 'grades/style.css' %}">
 </head>
 <body>
 {% if user.is_authenticated %}
-<nav class="topbar"><div class="inner">
-  <a class="brand" href="{% url 'dashboard' %}">{{ school.school_name }}</a>
-  <a href="{% url 'student_list' %}">Students</a>
-  <a href="{% url 'year_list' %}">School years</a>
-  <a href="{% url 'rubric_list' %}">Rubrics</a>
-  {% if school.track_attendance %}<a href="{% url 'attendance' %}">Attendance</a>{% endif %}
-  <a href="{% url 'settings' %}">Settings</a>
-  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
-</div></nav>
+<div class="app">
+  <aside class="sidebar">
+    <a class="brand" href="{% url 'dashboard' %}">
+      <span class="brand-mark">{% icon "cap" 20 %}</span>
+      <span><span class="brand-name">{{ school.school_name }}</span><br><span class="brand-sub">Gradebook</span></span>
+    </a>
+    <nav class="nav">
+      <a class="{% nav_active '/' %}" href="{% url 'dashboard' %}">{% icon "home" %}<span>Dashboard</span></a>
+      <a class="{% nav_active '/students/' %}" href="{% url 'student_list' %}">{% icon "users" %}<span>Students</span></a>
+      {% if school.track_attendance %}<a class="{% nav_active '/attendance/' %}" href="{% url 'attendance' %}">{% icon "attendance" %}<span>Attendance</span></a>{% endif %}
+      <div class="nav-label">Setup</div>
+      <a class="{% nav_active '/years/' %}" href="{% url 'year_list' %}">{% icon "calendar" %}<span>School years</span></a>
+      <a class="{% nav_active '/rubrics/' %}" href="{% url 'rubric_list' %}">{% icon "rubric" %}<span>Rubrics</span></a>
+      <a class="{% nav_active '/settings/' %}" href="{% url 'settings' %}">{% icon "settings" %}<span>Settings</span></a>
+    </nav>
+    <div class="sidebar-foot">
+      {% if current_year %}<div class="year-chip">{% icon "calendar" 16 %}<span>School year <strong>{{ current_year.name }}</strong></span></div>{% endif %}
+      <form method="post" action="{% url 'logout' %}" class="nav">{% csrf_token %}<button type="submit">{% icon "logout" %}<span>Log out</span></button></form>
+    </div>
+  </aside>
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+{% if messages %}<div class="toasts" role="status">{% for m in messages %}<div class="toast {{ m.tags }}">{% if m.tags == 'error' %}{% icon "trash" 18 %}{% else %}{% icon "check" 18 %}{% endif %}<span>{{ m }}</span></div>{% endfor %}</div>{% endif %}
+{% else %}
+{% block auth %}{% endblock %}
 {% endif %}
-<main>
-  {% if messages %}<ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
-  {% block content %}{% endblock %}
-</main>
 </body>
 </html>

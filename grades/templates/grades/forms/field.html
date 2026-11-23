@@ -1,0 +1,7 @@
+{% with wt=field.widget_type %}<div class="field{% if wt == 'checkbox' %} field-check field-wide{% endif %}{% if wt == 'textarea' %} field-wide{% endif %}{% if field.errors %} has-error{% endif %}">
+{% if wt == 'checkbox' %}<label class="switch" for="{{ field.id_for_label }}">{{ field }}<span class="switch-track" aria-hidden="true"></span><span class="switch-text"><span class="switch-label">{{ field.label }}</span>{% if field.help_text %}<span class="help">{{ field.help_text|safe }}</span>{% endif %}</span></label>
+{% else %}<label for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required %} <span class="optional">optional</span>{% endif %}</label>
+{{ field }}
+{% if field.help_text %}<div class="help">{{ field.help_text|safe }}</div>{% endif %}{% endif %}
+{% if field.errors %}<div class="field-error">{{ field.errors|join:" " }}</div>{% endif %}
+</div>{% endwith %}

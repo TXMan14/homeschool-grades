@@ -1,12 +1,20 @@
-{% extends "grades/base.html" %}
-{% block title %}Log in{% endblock %}
-{% block content %}
-<div class="card" style="max-width:380px;margin:3rem auto">
-  <h1>Home School Grades</h1>
-  <form method="post">{% csrf_token %}
-    {{ form.as_p }}
-    <input type="hidden" name="next" value="{{ next }}">
-    <button class="btn" type="submit">Log in</button>
-  </form>
+{% extends "grades/base.html" %}{% load ui %}
+{% block title %}Sign in{% endblock %}
+{% block auth %}
+<div class="auth">
+  <div class="auth-card">
+    <div class="brand"><span class="brand-mark">{% icon "cap" 20 %}</span></div>
+    <h1>Welcome back</h1>
+    <p class="sub">Sign in to your home school gradebook</p>
+    {% if form.errors %}<div class="alert alert-error">That username and password didn't match. Please try again.</div>{% endif %}
+    <form method="post">{% csrf_token %}
+      <div class="form-grid one">
+        <div class="field"><label for="id_username">Username</label>{{ form.username }}</div>
+        <div class="field"><label for="id_password">Password</label>{{ form.password }}</div>
+      </div>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn btn-block" type="submit" style="margin-top:1.25rem">Sign in</button>
+    </form>
+  </div>
 </div>
 {% endblock %}

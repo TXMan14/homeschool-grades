@@ -1,150 +1,193 @@
-{% extends "grades/base.html" %}
+{% extends "grades/base.html" %}{% load ui %}
 {% block title %}{{ course.name }}{% endblock %}
 {% block content %}
-<p class="small"><a href="{{ course.student.get_absolute_url }}">← {{ course.student.full_name }}</a> · {{ course.school_year }}</p>
-<div class="spread">
-  <h1>{{ course.name }}</h1>
-  <div class="row"><a class="btn secondary" href="{% url 'course_edit' course.pk %}">Edit course</a></div>
-</div>
-<p class="muted small">
-  {{ course.get_subject_display }} · {{ course.get_grading_method_display }}
-  {% if course.level != "regular" %}· {{ course.get_level_display }}{% endif %}
-  {% if course.on_transcript %}· {{ course.credits }} credit{{ course.credits|pluralize }} on transcript{% endif %}
-  {% if course.pass_fail %}· Pass/Fail{% endif %}
-</p>
-
-{% if not course.is_checklist %}
-<div class="card">
-  <div class="spread">
-    <div><span class="muted small">Final grade</span><div class="big">{{ grade.display }}</div>
-      {% if course.final_grade_override %}<span class="small muted">(set manually on the course)</span>{% endif %}</div>
-    {% if grade.points is not None %}<div class="small muted">Grade points {{ grade.points }}{% if grade.weighted_points != grade.points %} · weighted {{ grade.weighted_points }}{% endif %}</div>{% endif %}
+<div class="crumbs"><a href="{{ course.student.get_absolute_url }}">{{ course.student.full_name }}</a> {% icon "right" 14 %} <span>{{ course.school_year.name }}</span></div>
+<div class="page-head">
+  <div>
+    <h1>{{ course.name }}</h1>
+    <div class="meta">
+      <span class="badge">{{ course.get_subject_display }}</span>
+      <span class="badge">{% if course.is_weighted %}Weighted categories{% elif course.is_letter %}Letter grades{% else %}Skills checklist{% endif %}</span>
+      {% if course.level != "regular" %}<span class="badge badge-primary">{{ course.get_level_display }}</span>{% endif %}
+      {% if course.on_transcript %}<span class="badge badge-success">{% icon "cap" 13 %} {{ course.credits|floatformat:"-2" }} credit{{ course.credits|pluralize }}</span>{% endif %}
+      {% if course.pass_fail %}<span class="badge">Pass / Fail</span>{% endif %}
+      {% if course.completed %}<span class="badge">Completed</span>{% endif %}
+    </div>
   </div>
+  <div class="actions"><a class="btn btn-secondary" href="{% url 'course_edit' course.pk %}">{% icon "edit" 16 %} Edit course</a></div>
+</div>
+
+{% if not course.is_checklist or grade.letter %}
+<div class="stats">
+  <div class="stat" style="display:flex;align-items:center;gap:1rem">
+    <span class="grade-chip lg g-{{ grade.letter|grade_class }}">{{ grade.letter|default:"–" }}</span>
+    <div><div class="stat-label">Final grade</div><div class="small muted">{% if course.final_grade_override %}Set manually{% elif course.is_letter %}Average of periods{% else %}Calculated{% endif %}</div></div>
+  </div>
+  {% if course.is_weighted %}
+  <div class="stat"><div class="stat-label">{% icon "chart" 15 %} Average</div><div class="stat-value">{% if grade.percent is not None %}{{ grade.percent|floatformat:1 }}%{% else %}–{% endif %}</div>
+    {% if grade.percent is not None %}<div class="bar g-{{ grade.letter|grade_class }}" style="margin-top:.5rem"><span style="width:{{ grade.percent|pct_width }}%"></span></div>{% endif %}</div>
+  <div class="stat"><div class="stat-label">{% icon "attendance" 15 %} Graded</div><div class="stat-value">{{ graded_count }}<small>of {{ assignments|length }} assignments</small></div></div>
+  {% endif %}
+  {% if grade.points is not None %}
+  <div class="stat"><div class="stat-label">{% icon "cap" 15 %} Grade points</div><div class="stat-value">{{ grade.points|floatformat:"1" }}{% if grade.weighted_points != grade.points %}<small>{{ grade.weighted_points|floatformat:"1" }} weighted</small>{% endif %}</div></div>
+  {% endif %}
+  {% if school.track_hours %}
+  <div class="stat"><div class="stat-label">{% icon "clock" 15 %} Hours</div><div class="stat-value">{{ hours_total|floatformat:"-1" }}{% if course.on_transcript %}<small>≈ {{ hours_suggested_credits|floatformat:"-2" }} credit{{ hours_suggested_credits|pluralize }}</small>{% endif %}</div></div>
+  {% endif %}
 </div>
 {% endif %}
 
 {% if course.is_weighted %}
-<div class="two-col">
-  <div class="card">
-    <h3>Categories</h3>
-    <table>
-      {% for c in categories %}
-      <tr><td>{{ c.name }}</td><td class="num">{{ c.weight|floatformat:"-2" }}%</td>
-        <td class="num small"><a href="{% url 'category_edit' c.pk %}">Edit</a> · <a href="{% url 'category_delete' c.pk %}">Delete</a></td></tr>
-      {% empty %}<tr><td class="muted">No categories: all assignments count by total points.</td></tr>{% endfor %}
-    </table>
-    {% if categories and course.total_category_weight != 100 %}<p class="small" style="color:var(--danger)">Weights add up to {{ course.total_category_weight|floatformat:"-2" }}%. They're scaled proportionally, but 100% is easiest to read.</p>{% endif %}
-    <form class="inline-form" method="post" action="{% url 'category_add' course.pk %}" style="margin-top:.5rem">{% csrf_token %}
-      <p><label>Name</label>{{ category_form.name }}</p>
-      <p><label>Weight %</label>{{ category_form.weight }}</p>
-      <button class="btn small" type="submit">Add</button>
-    </form>
+<div class="course-layout">
+  <div>
+    <div class="card card-flush">
+      <div class="card-head"><div><h2>Assignments</h2><p>Leave "Earned" blank for work that isn't graded yet.</p></div>
+        <a class="btn btn-ghost btn-sm" href="{% url 'assignment_create' course.pk %}">{% icon "plus" 14 %} More options</a></div>
+      <form class="quick-add" method="post" action="{% url 'assignment_quick_add' course.pk %}">{% csrf_token %}
+        <div class="field"><label for="qa-title">Title</label><input id="qa-title" type="text" name="title" placeholder="e.g. Chapter 3 quiz" required></div>
+        <div class="field"><label>Category</label>{{ quick_form.category }}</div>
+        <div class="field"><label>Period</label>{{ quick_form.term }}</div>
+        <div class="field"><label>Date</label>{{ quick_form.date }}</div>
+        <div class="field"><label>Earned</label>{{ quick_form.points_earned }}</div>
+        <div class="field"><label>Out of</label>{{ quick_form.points_possible }}</div>
+        <button class="btn" type="submit" style="height:36px">{% icon "plus" 16 %} Add</button>
+      </form>
+      {% if assignments %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Assignment</th><th>Category</th><th>Period</th><th class="num">Score</th><th class="num">%</th><th></th></tr></thead>
+        <tbody>
+        {% for a in assignments %}
+        <tr>
+          <td><span class="cell-title">{{ a.title }}</span><div class="cell-sub">{{ a.date|date:"M j, Y"|default:"" }}{% if a.notes %} · {{ a.notes|truncatechars:40 }}{% endif %}</div></td>
+          <td class="small">{{ a.category.name|default:"–" }}</td>
+          <td class="small muted">{{ a.term.name|default:"–" }}</td>
+          <td class="num">{% if a.is_graded %}{{ a.points_earned|floatformat:"-2" }}<span class="muted"> / {{ a.points_possible|floatformat:"-2" }}</span>{% else %}<span class="badge badge-warning">Not graded</span>{% endif %}</td>
+          <td class="num">{% if a.is_graded %}<span class="grade-chip g-{{ a.letter|grade_class }}" style="min-width:52px">{{ a.percent|floatformat:0 }}</span>{% endif %}</td>
+          <td class="row-actions">{% if a.rubric %}<a class="btn btn-icon" href="{% url 'assignment_rubric' a.pk %}" title="Score with rubric">{% icon "rubric" 16 %}</a>{% endif %}<a class="btn btn-icon" href="{% url 'assignment_edit' a.pk %}" title="Edit">{% icon "edit" 16 %}</a><a class="btn btn-icon danger" href="{% url 'assignment_delete' a.pk %}" title="Delete">{% icon "trash" 16 %}</a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+      {% else %}
+      <div class="empty"><div class="icon-wrap">{% icon "book" 22 %}</div><h3>No assignments yet</h3><p>Use the bar above to add your first quiz, test or project.</p></div>
+      {% endif %}
+    </div>
   </div>
-  <div class="card">
-    <h3>Grades by period</h3>
-    <table>
-      {% for r in term_rows %}<tr><td>{{ r.term.name }}</td><td class="num">{% if r.percent is not None %}{{ r.percent|floatformat:1 }}%{% endif %}</td><td class="num grade">{{ r.letter|default:"-" }}</td></tr>
-      {% empty %}<tr><td class="muted">No grading periods in this year.</td></tr>{% endfor %}
-    </table>
+  <div>
+    <div class="card">
+      <div class="card-head"><h3>Grades by period</h3></div>
+      <div class="card-body">
+        {% for r in term_rows %}
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;{% if not forloop.last %}margin-bottom:.8rem{% endif %}">
+          <div style="flex:1"><div class="small" style="font-weight:600">{{ r.term.name }}</div>
+            {% if r.percent is not None %}<div class="bar g-{{ r.letter|grade_class }}" style="margin-top:.35rem"><span style="width:{{ r.percent|pct_width }}%"></span></div>{% endif %}</div>
+          <span class="small muted nowrap">{% if r.percent is not None %}{{ r.percent|floatformat:1 }}%{% endif %}</span>
+          <span class="grade-chip g-{{ r.letter|grade_class }}">{{ r.letter|default:"–" }}</span>
+        </div>
+        {% empty %}<p class="small muted">This year has no grading periods.</p>{% endfor %}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h3>Categories</h3><p>How much each type of work counts.</p></div></div>
+      <div class="card-body">
+        {% for c in categories %}
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.7rem">
+          <div style="flex:1;min-width:0"><div class="small" style="display:flex;justify-content:space-between"><span style="font-weight:600">{{ c.name }}</span><span class="muted">{{ c.weight|floatformat:"-2" }}%</span></div>
+            <div class="bar" style="margin-top:.35rem"><span style="width:{{ c.weight|pct_width }}%"></span></div></div>
+          <a class="btn btn-icon" href="{% url 'category_edit' c.pk %}" title="Edit">{% icon "edit" 15 %}</a>
+          <a class="btn btn-icon danger" href="{% url 'category_delete' c.pk %}" title="Delete">{% icon "trash" 15 %}</a>
+        </div>
+        {% empty %}<p class="small muted">No categories. Every assignment counts by total points.</p>{% endfor %}
+        {% if categories and course.total_category_weight != 100 %}<div class="alert alert-warning small" style="margin:.5rem 0 0">Weights add up to {{ course.total_category_weight|floatformat:"-2" }}%. They're scaled proportionally, but 100% is easiest to read.</div>{% endif %}
+        <form class="inline-form" method="post" action="{% url 'category_add' course.pk %}" style="margin-top:1rem">{% csrf_token %}
+          <div class="field"><label for="cat-name">New category</label><input id="cat-name" class="input-sm" type="text" name="name" placeholder="e.g. Labs" required></div>
+          <div class="field" style="flex:0 0 80px"><label for="cat-w">Weight %</label><input id="cat-w" class="input-sm" type="number" name="weight" step="0.01" min="0" max="100" required></div>
+          <button class="btn btn-secondary btn-sm" type="submit">Add</button>
+        </form>
+      </div>
+    </div>
   </div>
-</div>
-
-<div class="card">
-  <div class="spread"><h3>Assignments</h3><a class="small" href="{% url 'assignment_create' course.pk %}">+ Full form (notes, rubric)</a></div>
-  <form class="inline-form" method="post" action="{% url 'assignment_quick_add' course.pk %}">{% csrf_token %}
-    <p><label>Title</label>{{ quick_form.title }}</p>
-    <p><label>Category</label>{{ quick_form.category }}</p>
-    <p><label>Period</label>{{ quick_form.term }}</p>
-    <p><label>Date</label>{{ quick_form.date }}</p>
-    <p><label>Earned</label>{{ quick_form.points_earned }}</p>
-    <p><label>Out of</label>{{ quick_form.points_possible }}</p>
-    <button class="btn" type="submit">Add</button>
-  </form>
-  <div class="table-wrap" style="margin-top:.8rem"><table>
-    <tr><th>Date</th><th>Assignment</th><th>Category</th><th>Period</th><th class="num">Score</th><th class="num">%</th><th></th></tr>
-    {% for a in assignments %}
-    <tr>
-      <td class="small">{{ a.date|date:"M j"|default:"" }}</td>
-      <td>{{ a.title }}{% if a.notes %} <span class="muted small" title="{{ a.notes }}">📝</span>{% endif %}</td>
-      <td class="small">{{ a.category.name|default:"-" }}</td>
-      <td class="small">{{ a.term.name|default:"-" }}</td>
-      <td class="num">{% if a.is_graded %}{{ a.points_earned|floatformat:"-2" }} / {{ a.points_possible|floatformat:"-2" }}{% else %}<span class="muted">not graded</span>{% endif %}</td>
-      <td class="num">{% if a.is_graded %}{{ a.percent|floatformat:1 }}{% endif %}</td>
-      <td class="num small">{% if a.rubric %}<a href="{% url 'assignment_rubric' a.pk %}">Rubric</a> · {% endif %}<a href="{% url 'assignment_edit' a.pk %}">Edit</a> · <a href="{% url 'assignment_delete' a.pk %}">Delete</a></td>
-    </tr>
-    {% empty %}<tr><td colspan="7" class="muted">No assignments yet.</td></tr>{% endfor %}
-  </table></div>
 </div>
 {% endif %}
 
 {% if course.is_checklist %}
-<div class="card">
-  <h3>Skills checklist</h3>
+<div class="card card-flush">
+  <div class="card-head"><div><h2>Skills checklist</h2><p>Mark each skill as Not yet, Progressing or Mastered in each grading period.</p></div></div>
   {% if skill_rows %}
   <form method="post" action="{% url 'skills_marks_save' course.pk %}">{% csrf_token %}
-    <div class="table-wrap"><table>
-      <tr><th>Skill</th>{% for t in terms %}<th>{{ t.name }}</th>{% endfor %}<th></th></tr>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Skill</th>{% for t in terms %}<th>{{ t.name }}</th>{% endfor %}<th></th></tr></thead>
+      <tbody>
       {% for row in skill_rows %}
-      <tr><td>{{ row.skill.name }}</td>
+      <tr><td class="cell-title">{{ row.skill.name }}</td>
         {% for t, value in row.cells %}
-        <td class="status-{{ value }}"><select name="mark_{{ row.skill.pk }}_{{ t.pk }}">
-          <option value=""></option>
+        <td><select class="skill-select s-{{ value }}" name="mark_{{ row.skill.pk }}_{{ t.pk }}" onchange="this.className='skill-select s-'+this.value">
+          <option value="">–</option>
           {% for code, label in skill_statuses %}<option value="{{ code }}"{% if code == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
         </select></td>
         {% endfor %}
-        <td class="num small"><a href="{% url 'skill_delete' row.skill.pk %}">Remove</a></td>
+        <td class="row-actions"><a class="btn btn-icon danger" href="{% url 'skill_delete' row.skill.pk %}" title="Remove skill">{% icon "trash" 16 %}</a></td>
       </tr>
       {% endfor %}
+      </tbody>
     </table></div>
-    {% if not terms %}<p class="small" style="color:var(--danger)">Add grading periods to this school year to record skill progress.</p>{% endif %}
-    <button class="btn" type="submit" style="margin-top:.6rem">Save checklist</button>
+    {% if not terms %}<div class="alert alert-warning" style="margin:1rem 1.25rem">Add grading periods to <a href="{% url 'year_list' %}">this school year</a> to record progress.</div>{% endif %}
+    <div class="card-foot"><button class="btn" type="submit">{% icon "check" 16 %} Save checklist</button></div>
   </form>
-  {% else %}<p class="muted">No skills yet. Add a few below, one per line.</p>{% endif %}
-  <form method="post" action="{% url 'skills_add' course.pk %}" style="margin-top:1rem">{% csrf_token %}
-    {{ bulk_skills_form.skills }}
-    <button class="btn secondary small" type="submit" style="margin-top:.4rem">Add skills</button>
-  </form>
+  {% else %}
+  <div class="empty"><div class="icon-wrap">{% icon "list" 22 %}</div><h3>No skills yet</h3><p>List the skills you want {{ course.student.first_name }} to master, one per line.</p></div>
+  {% endif %}
+  <div class="card-body" style="border-top:1px solid var(--border)">
+    <form method="post" action="{% url 'skills_add' course.pk %}">{% csrf_token %}
+      <div class="field"><label for="skills-new">Add skills</label><textarea id="skills-new" name="skills" rows="3" placeholder="Counts to 100&#10;Adds within 20&#10;Tells time to the hour" required></textarea><div class="help">One skill per line.</div></div>
+      <button class="btn btn-secondary btn-sm" type="submit" style="margin-top:.75rem">{% icon "plus" 14 %} Add skills</button>
+    </form>
+  </div>
 </div>
 {% endif %}
 
 <div class="card">
-  <h3>{% if course.is_letter %}Grades and comments by period{% else %}Report card comments{% endif %}</h3>
+  <div class="card-head"><div><h2>{% if course.is_letter %}Grades & comments{% else %}Report card comments{% endif %}</h2>
+    <p>{% if course.is_letter %}Enter a letter grade for each period.{% elif course.is_weighted %}Optional: override a calculated period grade.{% else %}Comments print on the report card.{% endif %}</p></div></div>
+  <div class="card-body">
   {% if term_rows %}
   <form method="post" action="{% url 'term_grades_save' course.pk %}">{% csrf_token %}
-    <table>
-      <tr><th>Period</th>{% if not course.is_checklist %}<th>{% if course.is_letter %}Letter grade{% else %}Override{% endif %}</th>{% endif %}<th>Comment</th></tr>
-      {% for r in term_rows %}
-      <tr><td>{{ r.term.name }}</td>
-        {% if not course.is_checklist %}<td><input class="cell-input" type="text" name="letter_{{ r.term.pk }}" value="{{ r.record.letter|default:'' }}" maxlength="3" placeholder="{% if course.is_weighted %}{{ r.letter }}{% endif %}"></td>{% else %}<input type="hidden" name="letter_{{ r.term.pk }}" value="{{ r.record.letter|default:'' }}">{% endif %}
-        <td><textarea name="comment_{{ r.term.pk }}" rows="2">{{ r.record.comment|default:'' }}</textarea></td></tr>
-      {% endfor %}
-    </table>
-    {% if course.is_weighted %}<p class="small muted">Leave the override blank to use the calculated grade.</p>{% endif %}
-    <button class="btn" type="submit">Save</button>
+    {% for r in term_rows %}
+    <div style="display:grid;grid-template-columns:{% if course.is_checklist %}140px 1fr{% else %}140px 80px 1fr{% endif %};gap:1rem;align-items:start;{% if not forloop.last %}margin-bottom:1rem{% endif %}" class="term-row">
+      <div style="padding-top:.55rem;font-weight:600" class="small">{{ r.term.name }}</div>
+      {% if not course.is_checklist %}<div><input class="input-grade" type="text" name="letter_{{ r.term.pk }}" value="{{ r.record.letter|default:'' }}" maxlength="3" placeholder="{% if course.is_weighted %}{{ r.letter }}{% endif %}" aria-label="{{ r.term.name }} grade"></div>{% else %}<input type="hidden" name="letter_{{ r.term.pk }}" value="{{ r.record.letter|default:'' }}">{% endif %}
+      <textarea name="comment_{{ r.term.pk }}" rows="2" placeholder="Comment for the report card (optional)" aria-label="{{ r.term.name }} comment">{{ r.record.comment|default:'' }}</textarea>
+    </div>
+    {% endfor %}
+    <div class="form-actions"><button class="btn" type="submit">{% icon "check" 16 %} Save</button></div>
   </form>
-  {% else %}<p class="muted">Add grading periods to <a href="{% url 'year_list' %}">this school year</a> to enter period grades and comments.</p>{% endif %}
+  {% else %}<p class="muted small">Add grading periods to <a href="{% url 'year_list' %}">this school year</a> to enter period grades and comments.</p>{% endif %}
+  </div>
 </div>
 
 {% if school.track_hours %}
-<div class="card">
-  <div class="spread"><h3>Hours</h3>
-    <div><strong>{{ hours_total|floatformat:"-2" }}</strong> hours logged
-    {% if course.on_transcript %}· suggests <strong>{{ hours_suggested_credits }}</strong> credit{{ hours_suggested_credits|pluralize }} at {{ school.hours_per_credit }} h/credit
-      {% if hours_suggested_credits != course.credits %}<form method="post" action="{% url 'hours_apply_credits' course.pk %}" style="display:inline">{% csrf_token %}<button class="btn small secondary" type="submit">Use this</button></form>{% endif %}
-    {% endif %}</div>
+<div class="card card-flush">
+  <div class="card-head">
+    <div><h2>Hours</h2><p>{{ hours_total|floatformat:"-2" }} hours logged{% if course.on_transcript %} · {{ school.hours_per_credit }} hours = 1 credit{% endif %}</p></div>
+    {% if course.on_transcript and hours_suggested_credits != course.credits %}
+    <form method="post" action="{% url 'hours_apply_credits' course.pk %}">{% csrf_token %}<button class="btn btn-secondary btn-sm" type="submit">Set credits to {{ hours_suggested_credits|floatformat:"-2" }}</button></form>
+    {% endif %}
   </div>
-  <form class="inline-form" method="post" action="{% url 'hours_add' course.pk %}">{% csrf_token %}
-    <p><label>Date</label>{{ hours_form.date }}</p>
-    <p><label>Hours</label>{{ hours_form.hours }}</p>
-    <p><label>Note</label>{{ hours_form.note }}</p>
-    <button class="btn small" type="submit">Log hours</button>
+  <form class="quick-add" style="grid-template-columns:1fr .7fr 2fr auto" method="post" action="{% url 'hours_add' course.pk %}">{% csrf_token %}
+    <div class="field"><label>Date</label>{{ hours_form.date }}</div>
+    <div class="field"><label>Hours</label>{{ hours_form.hours }}</div>
+    <div class="field"><label>Note</label>{{ hours_form.note }}</div>
+    <button class="btn" type="submit" style="height:36px">Log</button>
   </form>
-  {% if hours_logs %}<table style="margin-top:.6rem">
-    {% for h in hours_logs %}<tr><td class="small">{{ h.date }}</td><td class="num">{{ h.hours|floatformat:"-2" }}</td><td class="small">{{ h.note }}</td><td class="num small"><a href="{% url 'hours_delete' h.pk %}">Delete</a></td></tr>{% endfor %}
-  </table>{% endif %}
+  {% if hours_logs %}
+  <div class="table-wrap"><table class="table"><tbody>
+    {% for h in hours_logs %}<tr><td class="small">{{ h.date|date:"D, M j" }}</td><td class="num">{{ h.hours|floatformat:"-2" }} h</td><td class="small muted">{{ h.note }}</td><td class="row-actions"><a class="btn btn-icon danger" href="{% url 'hours_delete' h.pk %}" title="Delete">{% icon "trash" 15 %}</a></td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if hours_log_count > hours_logs|length %}<div class="card-foot small muted">Showing the {{ hours_logs|length }} most recent of {{ hours_log_count }} entries.</div>{% endif %}
+  {% endif %}
 </div>
 {% endif %}
 
-{% if course.description %}<div class="card"><h3>Description</h3><p>{{ course.description|linebreaksbr }}</p></div>{% endif %}
-<p class="small"><a href="{% url 'course_delete' course.pk %}" style="color:var(--danger)">Delete course</a></p>
+{% if course.description %}<div class="card"><div class="card-head"><h3>Description</h3></div><div class="card-body small">{{ course.description|linebreaks }}</div></div>{% endif %}
+<a class="link-danger" href="{% url 'course_delete' course.pk %}">{% icon "trash" 15 %} Delete course</a>
 {% endblock %}
