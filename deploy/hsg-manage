@@ -4,6 +4,7 @@
 #   hsg-manage changepassword <username>
 #   hsg-manage load_demo_data
 set -euo pipefail
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 APP_DIR="${APP_DIR:-/opt/homeschool-grades}"
 set -a; . /etc/homeschool-grades/env; set +a
 cd "$APP_DIR"

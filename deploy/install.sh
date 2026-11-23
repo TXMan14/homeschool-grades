@@ -3,6 +3,7 @@
 # Run as root:   bash /opt/homeschool-grades/deploy/install.sh
 # Safe to re-run: it keeps your data, settings and secret key.
 set -euo pipefail
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 
 REPO_URL="${REPO_URL:-https://github.com/TXMan14/homeschool-grades.git}"
 APP_DIR="${APP_DIR:-/opt/homeschool-grades}"
@@ -23,6 +24,7 @@ if [ ! -d "$APP_DIR/.git" ]; then
   git clone "$REPO_URL" "$APP_DIR"
 fi
 git config --global --add safe.directory "$APP_DIR"
+git -C "$APP_DIR" pull --ff-only || true
 
 echo "==> Creating the app user and folders"
 id "$APP_USER" >/dev/null 2>&1 || useradd --system --home "$DATA_DIR" --shell /usr/sbin/nologin "$APP_USER"

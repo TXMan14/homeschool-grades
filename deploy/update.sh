@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Pull the latest code from GitHub and restart. Run as root inside the LXC.
 set -euo pipefail
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 APP_DIR="${APP_DIR:-/opt/homeschool-grades}"
 [ "$(id -u)" -eq 0 ] || { echo "Please run as root."; exit 1; }
 
