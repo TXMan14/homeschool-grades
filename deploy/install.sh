@@ -57,6 +57,8 @@ echo "==> Python environment"
 
 echo "==> Helper command: hsg-manage"
 install -m 755 "$APP_DIR/deploy/hsg-manage" /usr/local/bin/hsg-manage
+# pct enter shells leave /usr/local/bin off PATH, so link into /usr/bin too.
+ln -sf /usr/local/bin/hsg-manage /usr/bin/hsg-manage
 
 echo "==> Database and static files"
 hsg-manage migrate --noinput
@@ -75,6 +77,7 @@ systemctl reload nginx
 
 echo "==> Nightly database backup (kept 30 days in $BACKUP_DIR)"
 install -m 755 "$APP_DIR/deploy/backup.sh" /usr/local/bin/hsg-backup
+ln -sf /usr/local/bin/hsg-backup /usr/bin/hsg-backup
 cat > /etc/cron.d/homeschool-grades <<CRON
 15 2 * * * root /usr/local/bin/hsg-backup >/dev/null 2>&1
 CRON
