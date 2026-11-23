@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Run a Django management command as the app user with production settings.
+#   hsg-manage createsuperuser
+#   hsg-manage changepassword <username>
+#   hsg-manage load_demo_data
+set -euo pipefail
+APP_DIR="${APP_DIR:-/opt/homeschool-grades}"
+set -a; . /etc/homeschool-grades/env; set +a
+cd "$APP_DIR"
+exec runuser -u hsg --preserve-environment -- "$APP_DIR/.venv/bin/python" manage.py "$@"

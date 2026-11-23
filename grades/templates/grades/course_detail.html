@@ -1,0 +1,150 @@
+{% extends "grades/base.html" %}
+{% block title %}{{ course.name }}{% endblock %}
+{% block content %}
+<p class="small"><a href="{{ course.student.get_absolute_url }}">← {{ course.student.full_name }}</a> · {{ course.school_year }}</p>
+<div class="spread">
+  <h1>{{ course.name }}</h1>
+  <div class="row"><a class="btn secondary" href="{% url 'course_edit' course.pk %}">Edit course</a></div>
+</div>
+<p class="muted small">
+  {{ course.get_subject_display }} · {{ course.get_grading_method_display }}
+  {% if course.level != "regular" %}· {{ course.get_level_display }}{% endif %}
+  {% if course.on_transcript %}· {{ course.credits }} credit{{ course.credits|pluralize }} on transcript{% endif %}
+  {% if course.pass_fail %}· Pass/Fail{% endif %}
+</p>
+
+{% if not course.is_checklist %}
+<div class="card">
+  <div class="spread">
+    <div><span class="muted small">Final grade</span><div class="big">{{ grade.display }}</div>
+      {% if course.final_grade_override %}<span class="small muted">(set manually on the course)</span>{% endif %}</div>
+    {% if grade.points is not None %}<div class="small muted">Grade points {{ grade.points }}{% if grade.weighted_points != grade.points %} · weighted {{ grade.weighted_points }}{% endif %}</div>{% endif %}
+  </div>
+</div>
+{% endif %}
+
+{% if course.is_weighted %}
+<div class="two-col">
+  <div class="card">
+    <h3>Categories</h3>
+    <table>
+      {% for c in categories %}
+      <tr><td>{{ c.name }}</td><td class="num">{{ c.weight|floatformat:"-2" }}%</td>
+        <td class="num small"><a href="{% url 'category_edit' c.pk %}">Edit</a> · <a href="{% url 'category_delete' c.pk %}">Delete</a></td></tr>
+      {% empty %}<tr><td class="muted">No categories: all assignments count by total points.</td></tr>{% endfor %}
+    </table>
+    {% if categories and course.total_category_weight != 100 %}<p class="small" style="color:var(--danger)">Weights add up to {{ course.total_category_weight|floatformat:"-2" }}%. They're scaled proportionally, but 100% is easiest to read.</p>{% endif %}
+    <form class="inline-form" method="post" action="{% url 'category_add' course.pk %}" style="margin-top:.5rem">{% csrf_token %}
+      <p><label>Name</label>{{ category_form.name }}</p>
+      <p><label>Weight %</label>{{ category_form.weight }}</p>
+      <button class="btn small" type="submit">Add</button>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Grades by period</h3>
+    <table>
+      {% for r in term_rows %}<tr><td>{{ r.term.name }}</td><td class="num">{% if r.percent is not None %}{{ r.percent|floatformat:1 }}%{% endif %}</td><td class="num grade">{{ r.letter|default:"-" }}</td></tr>
+      {% empty %}<tr><td class="muted">No grading periods in this year.</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="spread"><h3>Assignments</h3><a class="small" href="{% url 'assignment_create' course.pk %}">+ Full form (notes, rubric)</a></div>
+  <form class="inline-form" method="post" action="{% url 'assignment_quick_add' course.pk %}">{% csrf_token %}
+    <p><label>Title</label>{{ quick_form.title }}</p>
+    <p><label>Category</label>{{ quick_form.category }}</p>
+    <p><label>Period</label>{{ quick_form.term }}</p>
+    <p><label>Date</label>{{ quick_form.date }}</p>
+    <p><label>Earned</label>{{ quick_form.points_earned }}</p>
+    <p><label>Out of</label>{{ quick_form.points_possible }}</p>
+    <button class="btn" type="submit">Add</button>
+  </form>
+  <div class="table-wrap" style="margin-top:.8rem"><table>
+    <tr><th>Date</th><th>Assignment</th><th>Category</th><th>Period</th><th class="num">Score</th><th class="num">%</th><th></th></tr>
+    {% for a in assignments %}
+    <tr>
+      <td class="small">{{ a.date|date:"M j"|default:"" }}</td>
+      <td>{{ a.title }}{% if a.notes %} <span class="muted small" title="{{ a.notes }}">📝</span>{% endif %}</td>
+      <td class="small">{{ a.category.name|default:"-" }}</td>
+      <td class="small">{{ a.term.name|default:"-" }}</td>
+      <td class="num">{% if a.is_graded %}{{ a.points_earned|floatformat:"-2" }} / {{ a.points_possible|floatformat:"-2" }}{% else %}<span class="muted">not graded</span>{% endif %}</td>
+      <td class="num">{% if a.is_graded %}{{ a.percent|floatformat:1 }}{% endif %}</td>
+      <td class="num small">{% if a.rubric %}<a href="{% url 'assignment_rubric' a.pk %}">Rubric</a> · {% endif %}<a href="{% url 'assignment_edit' a.pk %}">Edit</a> · <a href="{% url 'assignment_delete' a.pk %}">Delete</a></td>
+    </tr>
+    {% empty %}<tr><td colspan="7" class="muted">No assignments yet.</td></tr>{% endfor %}
+  </table></div>
+</div>
+{% endif %}
+
+{% if course.is_checklist %}
+<div class="card">
+  <h3>Skills checklist</h3>
+  {% if skill_rows %}
+  <form method="post" action="{% url 'skills_marks_save' course.pk %}">{% csrf_token %}
+    <div class="table-wrap"><table>
+      <tr><th>Skill</th>{% for t in terms %}<th>{{ t.name }}</th>{% endfor %}<th></th></tr>
+      {% for row in skill_rows %}
+      <tr><td>{{ row.skill.name }}</td>
+        {% for t, value in row.cells %}
+        <td class="status-{{ value }}"><select name="mark_{{ row.skill.pk }}_{{ t.pk }}">
+          <option value=""></option>
+          {% for code, label in skill_statuses %}<option value="{{ code }}"{% if code == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select></td>
+        {% endfor %}
+        <td class="num small"><a href="{% url 'skill_delete' row.skill.pk %}">Remove</a></td>
+      </tr>
+      {% endfor %}
+    </table></div>
+    {% if not terms %}<p class="small" style="color:var(--danger)">Add grading periods to this school year to record skill progress.</p>{% endif %}
+    <button class="btn" type="submit" style="margin-top:.6rem">Save checklist</button>
+  </form>
+  {% else %}<p class="muted">No skills yet. Add a few below, one per line.</p>{% endif %}
+  <form method="post" action="{% url 'skills_add' course.pk %}" style="margin-top:1rem">{% csrf_token %}
+    {{ bulk_skills_form.skills }}
+    <button class="btn secondary small" type="submit" style="margin-top:.4rem">Add skills</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>{% if course.is_letter %}Grades and comments by period{% else %}Report card comments{% endif %}</h3>
+  {% if term_rows %}
+  <form method="post" action="{% url 'term_grades_save' course.pk %}">{% csrf_token %}
+    <table>
+      <tr><th>Period</th>{% if not course.is_checklist %}<th>{% if course.is_letter %}Letter grade{% else %}Override{% endif %}</th>{% endif %}<th>Comment</th></tr>
+      {% for r in term_rows %}
+      <tr><td>{{ r.term.name }}</td>
+        {% if not course.is_checklist %}<td><input class="cell-input" type="text" name="letter_{{ r.term.pk }}" value="{{ r.record.letter|default:'' }}" maxlength="3" placeholder="{% if course.is_weighted %}{{ r.letter }}{% endif %}"></td>{% else %}<input type="hidden" name="letter_{{ r.term.pk }}" value="{{ r.record.letter|default:'' }}">{% endif %}
+        <td><textarea name="comment_{{ r.term.pk }}" rows="2">{{ r.record.comment|default:'' }}</textarea></td></tr>
+      {% endfor %}
+    </table>
+    {% if course.is_weighted %}<p class="small muted">Leave the override blank to use the calculated grade.</p>{% endif %}
+    <button class="btn" type="submit">Save</button>
+  </form>
+  {% else %}<p class="muted">Add grading periods to <a href="{% url 'year_list' %}">this school year</a> to enter period grades and comments.</p>{% endif %}
+</div>
+
+{% if school.track_hours %}
+<div class="card">
+  <div class="spread"><h3>Hours</h3>
+    <div><strong>{{ hours_total|floatformat:"-2" }}</strong> hours logged
+    {% if course.on_transcript %}· suggests <strong>{{ hours_suggested_credits }}</strong> credit{{ hours_suggested_credits|pluralize }} at {{ school.hours_per_credit }} h/credit
+      {% if hours_suggested_credits != course.credits %}<form method="post" action="{% url 'hours_apply_credits' course.pk %}" style="display:inline">{% csrf_token %}<button class="btn small secondary" type="submit">Use this</button></form>{% endif %}
+    {% endif %}</div>
+  </div>
+  <form class="inline-form" method="post" action="{% url 'hours_add' course.pk %}">{% csrf_token %}
+    <p><label>Date</label>{{ hours_form.date }}</p>
+    <p><label>Hours</label>{{ hours_form.hours }}</p>
+    <p><label>Note</label>{{ hours_form.note }}</p>
+    <button class="btn small" type="submit">Log hours</button>
+  </form>
+  {% if hours_logs %}<table style="margin-top:.6rem">
+    {% for h in hours_logs %}<tr><td class="small">{{ h.date }}</td><td class="num">{{ h.hours|floatformat:"-2" }}</td><td class="small">{{ h.note }}</td><td class="num small"><a href="{% url 'hours_delete' h.pk %}">Delete</a></td></tr>{% endfor %}
+  </table>{% endif %}
+</div>
+{% endif %}
+
+{% if course.description %}<div class="card"><h3>Description</h3><p>{{ course.description|linebreaksbr }}</p></div>{% endif %}
+<p class="small"><a href="{% url 'course_delete' course.pk %}" style="color:var(--danger)">Delete course</a></p>
+{% endblock %}

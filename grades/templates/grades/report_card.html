@@ -1,0 +1,69 @@
+{% extends "grades/base.html" %}
+{% block title %}Report card - {{ student.full_name }} - {{ year }}{% endblock %}
+{% block content %}
+<div class="report-tools spread">
+  <a href="{{ student.get_absolute_url }}">← {{ student.full_name }}</a>
+  <form class="inline-form" method="get">
+    <p><select name="term" onchange="this.form.submit()">
+      <option value="">Full year</option>
+      {% for t in all_terms %}<option value="{{ t.pk }}"{% if chosen.pk == t.pk %} selected{% endif %}>Through {{ t.name }}</option>{% endfor %}
+    </select></p>
+    <button class="btn" type="button" onclick="window.print()">Print / Save as PDF</button>
+  </form>
+</div>
+
+<div class="report">
+  <h1>Report Card</h1>
+  <div class="school"><strong>{{ school.school_name }}</strong>{% if school.address %}<br>{{ school.address|linebreaksbr }}{% endif %}</div>
+  <div class="info">
+    <div><strong>Student:</strong> {{ student.full_name }}</div>
+    <div><strong>School year:</strong> {{ year.name }}</div>
+    <div><strong>Grade:</strong> {{ enrollment.get_grade_level_display|default:"" }}</div>
+    <div><strong>Period:</strong> {% if chosen %}{{ chosen.name }}{% else %}Full year{% endif %}</div>
+  </div>
+
+  {% if graded %}
+  <table>
+    <tr><th>Subject</th>{% for t in terms %}<th class="num">{{ t.name }}</th>{% endfor %}{% if show_final %}<th class="num">Final</th>{% endif %}</tr>
+    {% for e in graded %}
+    <tr><td>{{ e.course.name }}{% if e.course.level != "regular" %} ({{ e.course.get_level_display }}){% endif %}</td>
+      {% for l in e.term_letters %}<td class="num">{{ l|default:"–" }}</td>{% endfor %}
+      {% if show_final %}<td class="num"><strong>{{ e.grade.letter|default:"–" }}</strong></td>{% endif %}</tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% for e in checklists %}
+  <h3 style="margin-top:1.2rem">{{ e.course.name }}</h3>
+  <table>
+    <tr><th>Skill</th>{% for t in terms %}<th>{{ t.name }}</th>{% endfor %}</tr>
+    {% for s in e.skills %}<tr><td>{{ s.skill.name }}</td>{% for m in s.marks %}<td>{{ m }}</td>{% endfor %}</tr>{% endfor %}
+  </table>
+  {% if e.grade.letter %}<p class="small">Overall: <strong>{{ e.grade.letter }}</strong></p>{% endif %}
+  {% endfor %}
+
+  <h3 style="margin-top:1.2rem">Comments</h3>
+  {% for e in graded %}{% for t, c in e.comments %}<p><strong>{{ e.course.name }}{% if terms|length > 1 %}, {{ t.name }}{% endif %}:</strong> {{ c }}</p>{% endfor %}{% endfor %}
+  {% for e in checklists %}{% for t, c in e.comments %}<p><strong>{{ e.course.name }}{% if terms|length > 1 %}, {{ t.name }}{% endif %}:</strong> {{ c }}</p>{% endfor %}{% endfor %}
+  <p style="min-height:3rem"></p>
+
+  {% if attendance %}
+  <p><strong>Attendance:</strong> {{ attendance.days_attended }} days attended
+    (present {{ attendance.present }}, half days {{ attendance.half }}, absent {{ attendance.absent }}, excused {{ attendance.excused }}).
+    Required for the year: {{ school.required_school_days }}.</p>
+  {% endif %}
+  {% if hours %}
+  <p><strong>Instructional hours:</strong> {% for c, h in hours %}{{ c.name }} {{ h|floatformat:"-1" }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+  {% endif %}
+
+  <div class="legend">
+    <strong>Grading scale:</strong> {% for s in scale %}{{ s.letter }} = {{ s.min|floatformat:"-1" }}–{{ s.max|floatformat:"-2" }}%{% if not forloop.last %}, {% endif %}{% endfor %}
+    {% if checklists %}<br><strong>Skills:</strong> Mastered · Progressing · Not yet{% endif %}
+  </div>
+
+  <div class="signature">
+    <div>{{ school.administrator|default:"Parent / Teacher" }}</div>
+    <div>Date: {{ today|date:"F j, Y" }}</div>
+  </div>
+</div>
+{% endblock %}

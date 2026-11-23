@@ -1,0 +1,26 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ school.school_name|default:"Home School Grades" }}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'grades/style.css' %}">
+</head>
+<body>
+{% if user.is_authenticated %}
+<nav class="topbar"><div class="inner">
+  <a class="brand" href="{% url 'dashboard' %}">{{ school.school_name }}</a>
+  <a href="{% url 'student_list' %}">Students</a>
+  <a href="{% url 'year_list' %}">School years</a>
+  <a href="{% url 'rubric_list' %}">Rubrics</a>
+  {% if school.track_attendance %}<a href="{% url 'attendance' %}">Attendance</a>{% endif %}
+  <a href="{% url 'settings' %}">Settings</a>
+  <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+</div></nav>
+{% endif %}
+<main>
+  {% if messages %}<ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

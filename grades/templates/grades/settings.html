@@ -1,0 +1,19 @@
+{% extends "grades/base.html" %}
+{% block content %}
+<h1>Settings</h1>
+<form method="post">{% csrf_token %}
+<div class="two-col">
+  <div class="card"><h3>School and options</h3>{{ form.as_p }}</div>
+  <div class="card"><h3>Grading scale</h3>
+    <p class="small muted">Percent needed for each letter and its grade points on a 4.0 scale. Add rows for plus/minus grades (for example B+ at 87% = 3.3). Tick Delete to remove a row.</p>
+    {{ formset.management_form }}{{ formset.non_form_errors }}
+    <table><tr><th>Letter</th><th>Min %</th><th>Points</th><th>Delete</th></tr>
+    {% for f in formset %}<tr>{{ f.id }}<td>{{ f.letter }}{{ f.letter.errors }}</td><td>{{ f.min_percent }}{{ f.min_percent.errors }}</td><td>{{ f.grade_points }}{{ f.grade_points.errors }}</td><td>{{ f.DELETE }}</td></tr>{% endfor %}
+    </table>
+    <p class="small muted" style="margin-top:1rem">P (pass), I (incomplete), W (withdrawn) and IP (in progress) can be entered as final grades and are left out of the GPA.</p>
+    <p class="small"><a href="{% url 'password_change' %}">Change your password</a> · <a href="{% url 'admin:index' %}">Raw data admin</a></p>
+  </div>
+</div>
+<button class="btn" type="submit">Save settings</button>
+</form>
+{% endblock %}

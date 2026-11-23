@@ -1,0 +1,17 @@
+[Unit]
+Description=Home School Grades (Gunicorn)
+After=network.target
+
+[Service]
+User=hsg
+Group=hsg
+WorkingDirectory=/opt/homeschool-grades
+EnvironmentFile=/etc/homeschool-grades/env
+ExecStart=/opt/homeschool-grades/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 2 --timeout 60 --access-logfile -
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

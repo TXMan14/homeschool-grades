@@ -1,0 +1,42 @@
+{% extends "grades/base.html" %}
+{% block content %}
+<div class="spread"><h1>{% if year %}{{ year }}{% else %}Welcome{% endif %}</h1>
+  <div class="row"><a class="btn secondary" href="{% url 'student_create' %}">Add student</a> <a class="btn" href="{% url 'course_create' %}">Add course</a></div></div>
+
+{% if needs_setup %}
+<div class="notice">
+  <strong>Getting started:</strong>
+  1. <a href="{% url 'settings' %}">Enter your school name</a> and choose whether to track hours and attendance.
+  2. <a href="{% url 'year_create' %}">Add a school year</a> (grading periods are created for you).
+  3. <a href="{% url 'student_create' %}">Add your students</a> and set each one's grade level.
+  4. Add courses for each student.
+</div>
+{% endif %}
+
+<div class="grid">
+{% for s in students %}
+  <div class="card">
+    <div class="spread">
+      <h2 style="margin:0"><a href="{{ s.student.get_absolute_url }}">{{ s.student.full_name }}</a></h2>
+      {% if s.enrollment %}<span class="pill">{{ s.enrollment.get_grade_level_display }}</span>
+      {% elif year %}<a class="small" href="{% url 'enrollment_create' s.student.pk %}">Set grade level</a>{% endif %}
+    </div>
+    {% if s.courses %}
+    <table>
+      {% for c in s.courses %}
+      <tr><td><a href="{{ c.course.get_absolute_url }}">{{ c.course.name }}</a></td>
+          <td class="num grade">{% if c.course.is_checklist %}<span class="muted small">checklist</span>{% else %}{{ c.grade.display }}{% endif %}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="muted">No courses this year yet.</p>{% endif %}
+    <div class="row small" style="margin-top:.6rem">
+      <a href="{% url 'course_create' %}?student={{ s.student.pk }}">+ Course</a>
+      {% if year %}· <a href="{% url 'report_card' s.student.pk year.pk %}">Report card</a>{% endif %}
+      · <a href="{% url 'transcript' s.student.pk %}">Transcript</a>
+    </div>
+  </div>
+{% empty %}
+  <div class="card"><p>No students yet. <a href="{% url 'student_create' %}">Add one</a>.</p></div>
+{% endfor %}
+</div>
+{% endblock %}

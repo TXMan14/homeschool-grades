@@ -1,0 +1,21 @@
+{% extends "grades/base.html" %}
+{% block content %}
+<div class="spread"><h1>School years</h1><a class="btn" href="{% url 'year_create' %}">Add school year</a></div>
+{% for y in years %}
+<div class="card">
+  <div class="spread">
+    <h2 style="margin:0">{{ y.name }} {% if y.is_current %}<span class="pill">current</span>{% endif %}</h2>
+    <div class="row small"><a href="{% url 'year_edit' y.pk %}">Edit</a> · <a href="{% url 'year_delete' y.pk %}" style="color:var(--danger)">Delete</a></div>
+  </div>
+  <p class="muted small">{{ y.start_date }} to {{ y.end_date }}</p>
+  <table>
+    <tr><th>Grading period</th><th>Dates</th><th></th></tr>
+    {% for t in y.terms.all %}
+    <tr><td>{{ t.name }}</td><td class="small">{{ t.start_date|default:"" }} – {{ t.end_date|default:"" }}</td>
+      <td class="num small"><a href="{% url 'term_edit' t.pk %}">Edit</a> · <a href="{% url 'term_delete' t.pk %}">Delete</a></td></tr>
+    {% empty %}<tr><td colspan="3" class="muted">No grading periods. Report cards will just show the final grade.</td></tr>{% endfor %}
+  </table>
+  <p class="small"><a href="{% url 'term_create' y.pk %}">+ Add grading period</a></p>
+</div>
+{% empty %}<div class="card"><p>No school years yet. <a href="{% url 'year_create' %}">Add one</a>.</p></div>{% endfor %}
+{% endblock %}

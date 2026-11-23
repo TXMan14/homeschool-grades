@@ -1,0 +1,64 @@
+{% extends "grades/base.html" %}
+{% block title %}Transcript - {{ t.student.full_name }}{% endblock %}
+{% block content %}
+<div class="report-tools spread">
+  <a href="{{ t.student.get_absolute_url }}">← {{ t.student.full_name }}</a>
+  <button class="btn" type="button" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="report">
+  <h1>Official High School Transcript</h1>
+  <div class="school"><strong>{{ school.school_name }}</strong>{% if school.address %}<br>{{ school.address|linebreaksbr }}{% endif %}
+    {% if school.phone or school.email %}<br>{{ school.phone }}{% if school.phone and school.email %} · {% endif %}{{ school.email }}{% endif %}</div>
+  <div class="info">
+    <div><strong>Student:</strong> {{ t.student.full_name }}</div>
+    <div><strong>Date of birth:</strong> {{ t.student.birth_date|date:"F j, Y"|default:"" }}</div>
+    <div>{% if t.student.gender %}<strong>Gender:</strong> {{ t.student.gender }}{% endif %}</div>
+    <div><strong>{% if t.student.graduation_date %}Graduation date:</strong> {{ t.student.graduation_date|date:"F j, Y" }}{% else %}Expected graduation:</strong> {{ t.student.graduation_year|default:"" }}{% endif %}</div>
+  </div>
+
+  {% for y in t.years %}
+  <div class="year-block">
+    <h3>{{ y.school_year.name }}{% if y.grade_level %} · {{ y.grade_level }}{% endif %}</h3>
+    <table>
+      <tr><th>Course</th><th class="num">Grade</th><th class="num">Credits</th><th class="num">Points</th></tr>
+      {% for r in y.rows %}
+      <tr><td>{{ r.course.name }}{% if r.course.level == "honors" %} (Honors){% elif r.course.level == "ap" %} (AP/DE){% endif %}</td>
+        <td class="num">{{ r.letter|default:"IP" }}</td>
+        <td class="num">{{ r.credits|floatformat:"2" }}</td>
+        <td class="num">{% if r.points is not None %}{{ r.points|floatformat:"2" }}{% endif %}</td></tr>
+      {% endfor %}
+      <tr class="totals"><td>Year totals</td><td class="num">GPA {{ y.gpa|default:"–" }}</td><td class="num">{{ y.credits|floatformat:"2" }}</td><td></td></tr>
+    </table>
+  </div>
+  {% empty %}
+  <p class="muted">No courses are marked for the transcript yet. Edit a course and tick "On transcript".</p>
+  {% endfor %}
+
+  <div class="two-col" style="margin-top:1rem">
+    <div>
+      <h3>Summary</h3>
+      <table>
+        <tr><td>Total credits earned</td><td class="num"><strong>{{ t.total_credits|floatformat:"2" }}</strong></td></tr>
+        <tr><td>Cumulative GPA (unweighted)</td><td class="num"><strong>{{ t.gpa|default:"–" }}</strong></td></tr>
+        {% if school.show_weighted_gpa %}<tr><td>Cumulative GPA (weighted)</td><td class="num"><strong>{{ t.weighted_gpa|default:"–" }}</strong></td></tr>{% endif %}
+      </table>
+    </div>
+    <div>
+      <h3>Credits by subject</h3>
+      <table>{% for subject, credits in t.credits_by_subject.items %}<tr><td>{{ subject }}</td><td class="num">{{ credits|floatformat:"2" }}</td></tr>{% endfor %}</table>
+    </div>
+  </div>
+
+  <div class="legend">
+    <strong>Grading scale:</strong> {% for s in scale %}{{ s.letter }} = {{ s.min|floatformat:"-1" }}–{{ s.max|floatformat:"-2" }} ({{ s.points|floatformat:"1" }}){% if not forloop.last %}; {% endif %}{% endfor %}.
+    {% if school.show_weighted_gpa %}Weighted GPA adds {{ school.honors_bonus|floatformat:"-2" }} for Honors and {{ school.ap_bonus|floatformat:"-2" }} for AP / Dual enrollment courses.{% endif %}
+    One credit represents {{ school.hours_per_credit }} hours of instruction. P = pass (not in GPA), IP = in progress.
+  </div>
+
+  <div class="signature">
+    <div>{{ school.administrator|default:"School administrator" }}, Administrator</div>
+    <div>Date: {{ today|date:"F j, Y" }}</div>
+  </div>
+</div>
+{% endblock %}
