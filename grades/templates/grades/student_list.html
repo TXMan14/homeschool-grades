@@ -14,7 +14,7 @@
     <td class="muted">{{ s.birth_date|date:"M j, Y"|default:"–" }}</td>
     <td class="muted">{{ s.graduation_year|default:"–" }}</td>
     <td>{% if s.active %}<span class="badge badge-success">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
-    <td class="row-actions"><a class="btn btn-icon" href="{% url 'student_edit' s.pk %}?next={% url 'student_list' %}" title="Edit">{% icon "edit" 16 %}</a></td>
+    <td class="row-actions"><a class="btn btn-icon" href="{% url 'student_edit' s.pk %}?next={% url 'student_list' %}" title="Edit">{% icon "edit" 16 %}</a><a class="btn btn-icon danger" href="{% url 'student_delete' s.pk %}?next={% url 'student_list' %}" title="Delete">{% icon "trash" 16 %}</a></td>
   </tr>
   {% endfor %}
   </tbody>
