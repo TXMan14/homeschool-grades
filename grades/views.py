@@ -127,7 +127,7 @@ def dashboard(request):
 
     steps = [
         ("Name your school and pick options", reverse("settings"),
-         settings.school_name != "Our Home School"),
+         settings.settings_reviewed or settings.school_name != "Our Home School"),
         ("Add a school year", reverse("year_create"), SchoolYear.objects.exists()),
         ("Add your students", reverse("student_create"), Student.objects.exists()),
         ("Add courses", reverse("course_create"), Course.objects.exists()),
@@ -805,7 +805,9 @@ def settings_view(request):
         form = SchoolSettingsForm(request.POST, instance=school)
         formset = GradeScaleFormSet(request.POST, prefix="scale")
         if form.is_valid() and formset.is_valid():
-            form.save()
+            school = form.save(commit=False)
+            school.settings_reviewed = True
+            school.save()
             formset.save()
             messages.success(request, "Settings saved.")
             return redirect("settings")

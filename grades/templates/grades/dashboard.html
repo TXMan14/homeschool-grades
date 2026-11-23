@@ -30,7 +30,7 @@
   <div class="stat"><div class="stat-label">{% icon "book" 15 %} Courses this year</div><div class="stat-value">{{ course_count }}</div></div>
   {% if progress %}
   <div class="stat"><div class="stat-label">{% icon "calendar" 15 %} School year</div>
-    <div class="stat-value">{{ progress.pct }}%<small>{{ progress.days_left }} days left</small></div>
+    <div class="stat-value">{{ progress.pct }}%<small>{% if progress.days_left %}{{ progress.days_left }} day{{ progress.days_left|pluralize }} left{% else %}year complete{% endif %}</small></div>
     <div class="bar" style="margin-top:.5rem"><span style="width:{{ progress.pct }}%"></span></div></div>
   {% endif %}
   {% if attendance_today %}

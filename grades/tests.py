@@ -143,6 +143,25 @@ class PageTests(TestCase):
         self.assertEqual(r.status_code, 302)
         self.assertEqual(c.assignments.count(), n + 1)
 
+    def test_saving_settings_completes_setup_step(self):
+        self.client.login(username="parent", password="pw")
+        s = SchoolSettings.load()
+        s.school_name = "Our Home School"
+        s.save()
+        r = self.client.get("/settings/")
+        data = {"school_name": "Our Home School", "required_school_days": 180,
+                "hours_per_credit": 150, "honors_bonus": "0.5", "ap_bonus": "1.0"}
+        for f in r.context["formset"].management_form:
+            data[f.html_name] = f.value()
+        for form in r.context["formset"].forms:
+            for name in ["id", "letter", "min_percent", "grade_points"]:
+                if form[name].value() is not None:
+                    data[form[name].html_name] = form[name].value()
+        self.assertEqual(self.client.post("/settings/", data).status_code, 302)
+        self.assertTrue(SchoolSettings.load().settings_reviewed)
+        steps = self.client.get("/").context["steps"]
+        self.assertTrue(steps[0][2])
+
     def test_settings_toggle(self):
         self.client.login(username="parent", password="pw")
         r = self.client.get("/settings/")

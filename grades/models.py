@@ -54,6 +54,9 @@ class SchoolSettings(models.Model):
     show_weighted_gpa = models.BooleanField(
         default=True, help_text="Show the weighted GPA on transcripts alongside the unweighted GPA."
     )
+    settings_reviewed = models.BooleanField(
+        default=False, editable=False, help_text="Set once Settings has been saved."
+    )
 
     class Meta:
         verbose_name = "school settings"
